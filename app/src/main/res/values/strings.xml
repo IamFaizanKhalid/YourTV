@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">YourTV</string>
+    <string name="international_news">International News</string>
+    <string name="pakistani_news">Pakistani News</string>
+    <string name="loading_live_stream">Loading live stream…</string>
+    <string name="stream_unavailable">This channel is not live right now</string>
+    <string name="retry">Retry</string>
+</resources>
