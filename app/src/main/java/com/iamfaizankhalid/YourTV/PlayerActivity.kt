@@ -1,5 +1,6 @@
 package com.iamfaizankhalid.YourTV
 
+import android.graphics.Bitmap
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -86,14 +87,16 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun loadCurrentChannel() {
         val channel = Channels.all[channelIndex]
+        setOverlayIcon(null)
         showOverlay("${channelIndex + 1}  ${channel.name}")
 
         lifecycleScope.launch {
             try {
-                val videoId = streamRepository.resolve(channel, forceRefresh = false)
+                val stream = streamRepository.resolve(channel, forceRefresh = false)
                     ?: throw IllegalStateException(getString(R.string.stream_unavailable))
 
-                youTubePlayer?.loadVideo(videoId, 0f)
+                setOverlayIcon(stream.icon)
+                youTubePlayer?.loadVideo(stream.videoId, 0f)
             } catch (error: Throwable) {
                 Log.e("YouTVPlayer", "Unable to load ${channel.name}", error)
                 Toast.makeText(
@@ -106,10 +109,14 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun showOverlay(text: String) {
-        binding.playerOverlay.text = text
+        binding.playerOverlayText.text = text
         binding.playerOverlay.visibility = View.VISIBLE
         overlayHandler.removeCallbacks(hideOverlay)
         overlayHandler.postDelayed(hideOverlay, OVERLAY_TIMEOUT_MS)
+    }
+
+    private fun setOverlayIcon(icon: Bitmap?) {
+        binding.playerOverlayIcon.setImageBitmap(icon)
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {

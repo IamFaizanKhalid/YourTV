@@ -1,8 +1,10 @@
 package com.iamfaizankhalid.YourTV
 
+import android.graphics.Bitmap
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
@@ -26,6 +28,14 @@ class ChannelAdapter(
         }
     }
 
+    private val icons = mutableMapOf<Int, Bitmap>()
+
+    fun setChannelIcon(index: Int, icon: Bitmap) {
+        icons[index] = icon
+        val position = rows.indexOfFirst { it is ChannelRow && it.index == index }
+        if (position >= 0) notifyItemChanged(position)
+    }
+
     override fun getItemViewType(position: Int): Int = if (rows[position] is Header) 0 else 1
 
     override fun getItemCount(): Int = rows.size
@@ -39,7 +49,12 @@ class ChannelAdapter(
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (val row = rows[position]) {
             is Header -> (holder as HeaderViewHolder).bind(row.title)
-            is ChannelRow -> (holder as ChannelViewHolder).bind(row.channel, row.index, onChannelSelected)
+            is ChannelRow -> (holder as ChannelViewHolder).bind(
+                row.channel,
+                row.index,
+                icons[row.index],
+                onChannelSelected
+            )
         }
     }
 
@@ -50,10 +65,16 @@ class ChannelAdapter(
     }
 
     class ChannelViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        fun bind(channel: Channel, index: Int, onSelected: (Int) -> Unit) {
+        fun bind(
+            channel: Channel,
+            index: Int,
+            icon: Bitmap?,
+            onSelected: (Int) -> Unit
+        ) {
             itemView.findViewById<TextView>(R.id.channelNumber).text = (index + 1).toString()
             itemView.findViewById<TextView>(R.id.channelName).text = channel.name
             itemView.findViewById<TextView>(R.id.channelGroup).text = channel.group
+            itemView.findViewById<ImageView>(R.id.channelIcon).setImageBitmap(icon)
             itemView.setOnClickListener { onSelected(index) }
         }
     }

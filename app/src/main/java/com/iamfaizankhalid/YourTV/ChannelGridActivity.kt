@@ -6,11 +6,17 @@ import android.os.Handler
 import android.os.Looper
 import android.view.KeyEvent
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import com.iamfaizankhalid.YourTV.databinding.ActivityChannelGridBinding
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 
 class ChannelGridActivity : AppCompatActivity() {
     private lateinit var binding: ActivityChannelGridBinding
+    private val streamRepository by lazy { LiveStreamRepository(this) }
+    private val iconLoadSemaphore = Semaphore(3)
     private var digitBuffer = ""
     private val digitTimeout = Runnable {
         playNumber(digitBuffer)
@@ -31,6 +37,18 @@ class ChannelGridActivity : AppCompatActivity() {
         }
         binding.channelGrid.layoutManager = layoutManager
         binding.channelGrid.adapter = adapter
+
+        lifecycleScope.launch {
+            Channels.all.forEachIndexed { index, channel ->
+                launch {
+                    iconLoadSemaphore.withPermit {
+                        streamRepository.channelIcon(channel)?.let { icon ->
+                            adapter.setChannelIcon(index, icon)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
