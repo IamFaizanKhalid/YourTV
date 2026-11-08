@@ -19,7 +19,7 @@ data class ChannelStream(
 
 class LiveStreamRepository(context: Context) {
     companion object {
-        private const val TAG = "YouTVPlayer"
+        private const val TAG = "YourTVPlayer"
         private const val USER_AGENT =
             "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36"
         private const val VIDEO_CACHE_MS = 6 * 60 * 60 * 1000L

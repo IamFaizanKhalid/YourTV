@@ -104,7 +104,7 @@ class PlayerActivity : AppCompatActivity() {
                 setOverlayIcon(stream.icon)
                 youTubePlayer?.loadVideo(stream.videoId, 0f)
             } catch (error: Throwable) {
-                Log.e("YouTVPlayer", "Unable to load ${channel.name}", error)
+                Log.e("YourTVPlayer", "Unable to load ${channel.name}", error)
                 Toast.makeText(
                     this@PlayerActivity,
                     error.message ?: getString(R.string.stream_unavailable),
