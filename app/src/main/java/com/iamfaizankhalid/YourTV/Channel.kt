@@ -23,6 +23,6 @@ object Channels {
         Channel("ARY News", "https://www.youtube.com/@ArynewsTvofficial", "Pakistan","5FW9ZVMR_7M"),
         Channel("Dunya News", "https://www.youtube.com/@DunyanewsOfficial", "Pakistan","e2XVSUYh4S0"),
         Channel("Samaa TV", "https://www.youtube.com/@SAMAATV", "Pakistan","MLDQM0QL_-4"),
-        Channel("Express News", "https://www.youtube.com/@ExpressNewspkofficial", "KNvaWHgOBMw")
+        Channel("Express News", "https://www.youtube.com/@ExpressNewspkofficial", "Pakistan", "KNvaWHgOBMw")
     )
 }

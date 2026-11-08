@@ -81,6 +81,9 @@ class LiveStreamRepository(context: Context) {
             updateCachedIcon(channel, iconUrl, forceRefresh)?.let(::decodeIcon)
         }
 
+    fun cachedIconUrl(channel: Channel): String? =
+        prefs.getString(iconUrlKey(channel), null)
+
     private fun fetchChannelPage(channel: Channel): ChannelPage? {
         val url = "${channel.youtubeUrl.trimEnd('/')}/live"
         val request = Request.Builder()
@@ -183,11 +186,15 @@ class LiveStreamRepository(context: Context) {
         if (!forceRefresh && destination.exists() &&
             System.currentTimeMillis() - prefs.getLong(iconTimeKey(channel), 0L) < ICON_CACHE_MS
         ) {
+            prefs.edit().putString(iconUrlKey(channel), iconUrl).apply()
             return destination
         }
 
         if (downloadIcon(iconUrl, destination)) {
-            prefs.edit().putLong(iconTimeKey(channel), System.currentTimeMillis()).apply()
+            prefs.edit()
+                .putLong(iconTimeKey(channel), System.currentTimeMillis())
+                .putString(iconUrlKey(channel), iconUrl)
+                .apply()
             return destination
         }
 
@@ -253,6 +260,8 @@ class LiveStreamRepository(context: Context) {
     private fun videoTimeKey(channel: Channel): String = "${channel.youtubeUrl}_time"
 
     private fun iconTimeKey(channel: Channel): String = "${channel.youtubeUrl}_icon_time"
+
+    private fun iconUrlKey(channel: Channel): String = "${channel.youtubeUrl}_icon_url"
 
     private data class ChannelPage(
         val videoId: String?,

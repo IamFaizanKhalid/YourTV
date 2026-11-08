@@ -10,4 +10,5 @@ Simple no-nonsense TV app to watch live news channels from YouTube.
 
 - Channel numbers
 - Up/Down buttons to change channels
+- Most watched channel list on the home screen
 

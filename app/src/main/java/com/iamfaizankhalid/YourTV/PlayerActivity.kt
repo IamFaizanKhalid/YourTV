@@ -17,6 +17,7 @@ import androidx.lifecycle.lifecycleScope
 import com.iamfaizankhalid.YourTV.databinding.ActivityPlayerBinding
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class PlayerActivity : AppCompatActivity() {
@@ -28,6 +29,8 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var binding: ActivityPlayerBinding
     private var youTubePlayer: YouTubePlayer? = null
     private lateinit var streamRepository: LiveStreamRepository
+    private val viewStats by lazy { ChannelViewStats(this) }
+    private val homeScreenChannels by lazy { HomeScreenChannels(this) }
 
     private val overlayHandler = Handler(Looper.getMainLooper())
     private val hideOverlay = Runnable {
@@ -89,6 +92,9 @@ class PlayerActivity : AppCompatActivity() {
         val channel = Channels.all[channelIndex]
         setOverlayIcon(null)
         showOverlay("${channelIndex + 1}  ${channel.name}")
+
+        viewStats.recordView(channel)
+        lifecycleScope.launch(Dispatchers.IO) { homeScreenChannels.sync() }
 
         lifecycleScope.launch {
             try {

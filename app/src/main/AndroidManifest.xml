@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="com.android.providers.tv.permission.WRITE_EPG_DATA" />
     <uses-feature android:name="android.software.leanback" android:required="true" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <queries>
@@ -34,5 +35,13 @@
             android:screenOrientation="landscape"
             android:hardwareAccelerated="true"
             android:exported="false" />
+
+        <receiver
+            android:name=".HomeScreenChannelReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.media.tv.action.INITIALIZE_PROGRAMS" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

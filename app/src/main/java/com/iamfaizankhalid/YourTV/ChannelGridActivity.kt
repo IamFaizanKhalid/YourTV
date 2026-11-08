@@ -9,13 +9,21 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import com.iamfaizankhalid.YourTV.databinding.ActivityChannelGridBinding
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.withContext
 
 class ChannelGridActivity : AppCompatActivity() {
+    companion object {
+        const val EXTRA_OPEN_CHANNEL_INDEX = "open_channel_index"
+    }
+
     private lateinit var binding: ActivityChannelGridBinding
     private val streamRepository by lazy { LiveStreamRepository(this) }
+    private val homeScreenChannels by lazy { HomeScreenChannels(this) }
     private val iconLoadSemaphore = Semaphore(3)
     private var digitBuffer = ""
     private val digitTimeout = Runnable {
@@ -23,6 +31,7 @@ class ChannelGridActivity : AppCompatActivity() {
         digitBuffer = ""
     }
     private val handler = Handler(Looper.getMainLooper())
+    private var pendingOpenChannelIndex: Int? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,17 +47,51 @@ class ChannelGridActivity : AppCompatActivity() {
         binding.channelGrid.layoutManager = layoutManager
         binding.channelGrid.adapter = adapter
 
+        pendingOpenChannelIndex = openChannelIndexFrom(intent)
+        handlePendingOpenChannel()
+
         lifecycleScope.launch {
-            Channels.all.forEachIndexed { index, channel ->
-                launch {
-                    iconLoadSemaphore.withPermit {
-                        streamRepository.channelIcon(channel)?.let { icon ->
-                            adapter.setChannelIcon(index, icon)
+            withContext(Dispatchers.IO) { homeScreenChannels.sync() }
+
+            coroutineScope {
+                Channels.all.forEachIndexed { index, channel ->
+                    launch {
+                        iconLoadSemaphore.withPermit {
+                            streamRepository.channelIcon(channel)?.let { icon ->
+                                adapter.setChannelIcon(index, icon)
+                            }
                         }
                     }
                 }
             }
+
+            withContext(Dispatchers.IO) { homeScreenChannels.sync() }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        pendingOpenChannelIndex = openChannelIndexFrom(intent)
+        handlePendingOpenChannel()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        handlePendingOpenChannel()
+    }
+
+    private fun openChannelIndexFrom(intent: Intent?): Int? {
+        if (intent == null || !intent.hasExtra(EXTRA_OPEN_CHANNEL_INDEX)) return null
+        return intent.getIntExtra(EXTRA_OPEN_CHANNEL_INDEX, -1)
+            .takeIf { it in Channels.all.indices }
+    }
+
+    private fun handlePendingOpenChannel() {
+        val index = pendingOpenChannelIndex ?: return
+        pendingOpenChannelIndex = null
+        // Let the grid finish laying out before launching the player.
+        binding.channelGrid.post { openPlayer(index) }
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
