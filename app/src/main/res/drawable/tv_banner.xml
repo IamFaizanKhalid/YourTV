@@ -12,13 +12,13 @@
 
     <!-- TV Antenna -->
     <path
-        android:fillColor="#FFFFFF"
+        android:fillColor="#808080"
         android:pathData="M145,29 L115,5 L111,9 L140,36 Z
                           M175,29 L205,5 L209,9 L180,36 Z" />
 
     <!-- TV Outer Frame -->
     <path
-        android:fillColor="#FFFFFF"
+        android:fillColor="#808080"
         android:pathData="M65,29
             C52,29 44,37 44,49
             L44,132
@@ -105,12 +105,12 @@
 
     <!-- TV Stand -->
     <path
-        android:fillColor="#FFFFFF"
+        android:fillColor="#808080"
         android:pathData="M145,151h30v5h-30z" />
 
     <!-- TV Legs -->
     <path
-        android:fillColor="#FFFFFF"
+        android:fillColor="#808080"
         android:pathData="M76,150h8l-10,17h-6z
                           M236,150h8l8,17h-6z" />
 
