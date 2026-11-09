@@ -10,108 +10,71 @@
         android:fillColor="#10131A"
         android:pathData="M0,0h320v180h-320z" />
 
-    <!-- TV Antenna -->
-    <path
-        android:fillColor="#808080"
-        android:pathData="M145,29 L115,5 L111,9 L140,36 Z
-                          M175,29 L205,5 L209,9 L180,36 Z" />
+    <!-- Launcher icon, scaled and centered -->
+    <group
+        android:scaleX="0.6"
+        android:scaleY="0.6"
+        android:translateX="100"
+        android:translateY="-7.4">
 
-    <!-- TV Outer Frame -->
-    <path
-        android:fillColor="#808080"
-        android:pathData="M65,29
-            C52,29 44,37 44,49
-            L44,132
-            C44,144 52,151 65,151
-            L255,151
-            C268,151 276,144 276,132
-            L276,49
-            C276,37 268,29 255,29 Z" />
+        <!-- Main screen -->
+        <path
+            android:fillColor="#E53935"
+            android:pathData="M44,39 H156 A24,24 0,0 1 180,63 V125 A24,24 0,0 1 156,149 H44 A24,24 0,0 1 20,125 V63 A24,24 0,0 1 44,39 Z" />
 
-    <!-- TV Inner Body -->
-    <path
-        android:fillColor="#10131A"
-        android:pathData="M65,34
-            L255,34
-            C265,34 271,40 271,50
-            L271,131
-            C271,141 265,146 255,146
-            L65,146
-            C55,146 49,141 49,131
-            L49,50
-            C49,40 55,34 65,34 Z" />
+        <!-- Play button -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M82,65 L82,123 L135,94 Z" />
 
-    <!-- Red YouTube Screen -->
+        <!-- LIVE badge -->
+        <path
+            android:fillColor="#A80F17"
+            android:pathData="M126,124 H158 A10,10 0,0 1 168,134 A10,10 0,0 1 158,144 H126 A10,10 0,0 1 116,134 A10,10 0,0 1 126,124 Z" />
+
+        <!-- LIVE indicator -->
+        <path
+            android:fillColor="#FFAAA5"
+            android:pathData="M127,131 A3,3 0,1 1 127,137 A3,3 0,1 1 127,131" />
+
+        <!-- LIVE text: L -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M137,130 H139 V137 H143 V139 H137 Z" />
+
+        <!-- LIVE text: I -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M144,130 H146 V139 H144 Z" />
+
+        <!-- LIVE text: V -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M147,130 H149 L151,136 L153,130 H155 L152,139 H150 Z" />
+
+        <!-- LIVE text: E -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M156,130 H163 V132 H158 V133.5 H162 V135.5 H158 V137 H163 V139 H156 Z" />
+
+        <!-- Bottom detail -->
+        <path
+            android:fillColor="#C82029"
+            android:pathData="M68,159 H132 A3,3 0,0 1 135,162 A3,3 0,0 1 132,165 H68 A3,3 0,0 1 65,162 A3,3 0,0 1 68,159 Z" />
+    </group>
+
+    <!-- Red rounded background behind "TV" -->
     <path
         android:fillColor="#E53935"
-        android:pathData="M61,42
-            L259,42
-            C265,42 267,47 267,53
-            L267,128
-            C267,135 263,139 257,139
-            L63,139
-            C57,139 53,135 53,128
-            L53,53
-            C53,47 56,42 61,42 Z" />
+        android:pathData="M188,118.2 H251.89 A9,9 0,0 1 260.89,127.2 V157 A9,9 0,0 1 251.89,166 H188 A9,9 0,0 1 179,157 V127.2 A9,9 0,0 1 188,118.2 Z" />
 
-    <!-- YouTube Play Button -->
+    <!-- "Your" -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M137,65
-            Q134,63 134,68
-            L134,113
-            Q134,118 139,115
-            L180,94
-            Q185,91 180,88 Z" />
+        android:pathData="M72.15 160.00V144.94L59.04 124.21H67.51L75.93 138.37L84.18 124.21H92.51L79.35 144.99V160.00ZM94.46 146.67Q94.46 143.25 96.14 140.05Q97.83 136.86 100.92 135.17Q104.01 133.49 107.81 133.49Q113.70 133.49 117.46 137.31Q121.22 141.13 121.22 146.96Q121.22 152.85 117.42 156.72Q113.62 160.59 107.86 160.59Q104.30 160.59 101.06 158.97Q97.83 157.36 96.14 154.25Q94.46 151.14 94.46 146.67ZM101.49 147.04Q101.49 150.89 103.32 152.94Q105.15 155.00 107.84 155.00Q110.52 155.00 112.34 152.94Q114.16 150.89 114.16 146.99Q114.16 143.18 112.34 141.13Q110.52 139.08 107.84 139.08Q105.15 139.08 103.32 141.13Q101.49 143.18 101.49 147.04ZM143.65 160.00V156.12Q142.24 158.19 139.93 159.39Q137.62 160.59 135.06 160.59Q132.45 160.59 130.37 159.44Q128.30 158.29 127.37 156.22Q126.44 154.14 126.44 150.48V134.07H133.30V145.99Q133.30 151.46 133.68 152.69Q134.06 153.92 135.06 154.64Q136.06 155.36 137.60 155.36Q139.36 155.36 140.75 154.40Q142.14 153.43 142.65 152.00Q143.17 150.58 143.17 145.01V134.07H150.03V160.00ZM163.70 160.00H156.84V134.07H163.21V137.76Q164.85 135.15 166.15 134.32Q167.46 133.49 169.12 133.49Q171.46 133.49 173.63 134.78L171.51 140.76Q169.78 139.64 168.29 139.64Q166.85 139.64 165.85 140.43Q164.85 141.23 164.27 143.30Q163.70 145.38 163.70 151.99Z" />
 
-    <!-- LIVE Badge Background -->
-    <path
-        android:fillColor="#B71C1C"
-        android:pathData="M207,111
-            Q207,107 211,107
-            L260,107
-            Q264,107 264,111
-            L264,130
-            Q264,134 260,134
-            L211,134
-            Q207,134 207,130 Z" />
-
-    <!-- LIVE Indicator Dot -->
+    <!-- "TV" -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M215,117
-            A3.5,3.5 0,1 0,222 117
-            A3.5,3.5 0,1 0,215 117 Z" />
-
-    <!-- LIVE lettering: L -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M228,114h2.5v12h6v2.5h-8.5z" />
-
-    <!-- LIVE lettering: I -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M239,114h2.5v14.5h-2.5z" />
-
-    <!-- LIVE lettering: V -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M244,114h2.7l3,10.5 3,-10.5h2.7l-4.5,14.5h-2.5z" />
-
-    <!-- LIVE lettering: E -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M257,114h7v2.5h-4.5v3.5h4v2.5h-4v3.5h4.5v2.5h-7z" />
-
-    <!-- TV Stand -->
-    <path
-        android:fillColor="#808080"
-        android:pathData="M145,151h30v5h-30z" />
-
-    <!-- TV Legs -->
-    <path
-        android:fillColor="#808080"
-        android:pathData="M76,150h8l-10,17h-6z
-                          M236,150h8l8,17h-6z" />
-
+        android:pathData="M199.69 160.00V130.26H189.07V124.21H217.52V130.26H206.92V160.00ZM231.31 160.00 218.52 124.21H226.35L235.41 150.70L244.18 124.21H251.84L239.03 160.00Z" />
 </vector>

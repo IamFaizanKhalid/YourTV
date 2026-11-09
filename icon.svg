@@ -2,48 +2,41 @@
 <svg xmlns="http://www.w3.org/2000/svg"
     width="200"
     height="200"
-    viewBox="0 0 160 160">
+    viewBox="0 0 200 200">
 
-    <!-- Antenna -->
-    <path d="M72 38 L48 13 L44 17 L67 42 Z
-             M88 38 L112 13 L116 17 L93 42 Z"
-        fill="#808080"/>
+    <!-- Main screen -->
+    <rect x="20" y="39"
+        width="160" height="110"
+        rx="24"
+        fill="#E53935"/>
 
-    <!-- TV Frame -->
-    <rect x="9" y="38" width="142" height="91"
-        rx="15" fill="#808080"/>
-
-    <!-- Screen -->
-    <rect x="16" y="45" width="128" height="77"
-        rx="10" fill="#E53935"/>
-
-    <!-- Play Button -->
-    <path d="M61 64 Q61 61 65 63 L97 81
-             Q101 84 97 86 L65 104
-             Q61 106 61 102 Z"
+    <!-- Play button -->
+    <path d="M82 65 L82 123 L135 94 Z"
         fill="#FFFFFF"/>
 
-    <!-- LIVE Badge -->
-    <rect x="91" y="97" width="50" height="22"
-        rx="5" fill="#B71C1C"/>
+    <!-- LIVE badge -->
+    <rect x="116" y="124"
+        width="52" height="20"
+        rx="10"
+        fill="#A80F17"/>
 
-    <!-- LIVE Dot -->
-    <circle cx="100" cy="108" r="3" fill="#FFFFFF"/>
+    <!-- LIVE indicator -->
+    <circle cx="127" cy="134"
+        r="3"
+        fill="#FFAAA5"/>
 
-    <!-- LIVE Text -->
-    <text x="106" y="113"
-        font-family="Arial, sans-serif"
-        font-size="10"
+    <!-- LIVE text -->
+    <text x="146" y="137.5"
+        font-family="Arial"
+        font-size="9"
         font-weight="bold"
+        text-anchor="middle"
         fill="#FFFFFF">LIVE</text>
 
-    <!-- Stand -->
-    <path d="M69 129 H91 V134 H69 Z"
-        fill="#808080"/>
-
-    <!-- Legs -->
-    <path d="M27 128 H35 L27 144 H21 Z
-             M125 128 H133 L139 144 H133 Z"
-        fill="#808080"/>
+    <!-- Bottom detail -->
+    <rect x="65" y="159"
+        width="70" height="6"
+        rx="3"
+        fill="#C82029"/>
 
 </svg>
