@@ -26,14 +26,14 @@ object Channels {
         Channel("Geo News", "https://www.youtube.com/@GeoNews", "Pakistan"),
         Channel("ARY News", "https://www.youtube.com/@ArynewsTvofficial", "Pakistan"),
         Channel("Dunya News", "https://www.youtube.com/@DunyanewsOfficial", "Pakistan"),
-        Channel("Samaa TV", "https://www.youtube.com/@SAMAATV", "Pakistan"),
-        Channel("Express News", "https://www.youtube.com/@ExpressNewspkofficial", "Pakistan"),
         Channel("92 News HD", "https://www.youtube.com/@92newshdtv", "Pakistan"),
-        Channel("HUM News", "https://www.youtube.com/@humnewspakistan", "Pakistan"),
         Channel("Bol News", "https://www.youtube.com/@BOLNewsofficial", "Pakistan"),
         Channel("Aaj News", "https://www.youtube.com/@aajtvofficial", "Pakistan"),
-        Channel("GNN", "https://www.youtube.com/@gnnhdofficial", "Pakistan"),
+        Channel("Samaa TV", "https://www.youtube.com/@SAMAATV", "Pakistan"),
         Channel("Dawn News", "https://www.youtube.com/@dawnnewspakistan", "Pakistan"),
+        Channel("Express News", "https://www.youtube.com/@ExpressNewspkofficial", "Pakistan"),
+        Channel("HUM News", "https://www.youtube.com/@humnewspakistan", "Pakistan"),
+        Channel("GNN", "https://www.youtube.com/@gnnhdofficial", "Pakistan"),
         Channel("Suno News HD", "https://www.youtube.com/channel/UCB82Zom1MYh8VV4q7wXkfGA", "Pakistan")
     )
 }

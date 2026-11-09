@@ -7,7 +7,7 @@ import android.os.Looper
 import android.view.KeyEvent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.iamfaizankhalid.YourTV.databinding.ActivityChannelGridBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
@@ -22,6 +22,8 @@ class ChannelGridActivity : AppCompatActivity() {
     }
 
     private lateinit var binding: ActivityChannelGridBinding
+    private lateinit var internationalAdapter: ChannelAdapter
+    private lateinit var pakistaniAdapter: ChannelAdapter
     private val streamRepository by lazy { LiveStreamRepository(this) }
     private val homeScreenChannels by lazy { HomeScreenChannels(this) }
     private val iconLoadSemaphore = Semaphore(3)
@@ -38,14 +40,23 @@ class ChannelGridActivity : AppCompatActivity() {
         binding = ActivityChannelGridBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val adapter = ChannelAdapter(Channels.all) { index -> openPlayer(index) }
-        val layoutManager = GridLayoutManager(this, 4)
-        layoutManager.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
-            override fun getSpanSize(position: Int): Int =
-                if (adapter.isHeader(position)) layoutManager.spanCount else 1
+        internationalAdapter = ChannelAdapter(channelsIn("International")) { index ->
+            openPlayer(index)
         }
-        binding.channelGrid.layoutManager = layoutManager
-        binding.channelGrid.adapter = adapter
+        pakistaniAdapter = ChannelAdapter(channelsIn("Pakistan")) { index ->
+            openPlayer(index)
+        }
+
+        binding.internationalRow.layoutManager =
+            LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        binding.internationalRow.adapter = internationalAdapter
+        binding.pakistaniRow.layoutManager =
+            LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        binding.pakistaniRow.adapter = pakistaniAdapter
+
+        binding.internationalRow.post {
+            binding.internationalRow.getChildAt(0)?.requestFocus()
+        }
 
         pendingOpenChannelIndex = openChannelIndexFrom(intent)
         handlePendingOpenChannel()
@@ -58,7 +69,8 @@ class ChannelGridActivity : AppCompatActivity() {
                     launch {
                         iconLoadSemaphore.withPermit {
                             streamRepository.channelIcon(channel)?.let { icon ->
-                                adapter.setChannelIcon(index, icon)
+                                internationalAdapter.setChannelIcon(index, icon)
+                                pakistaniAdapter.setChannelIcon(index, icon)
                             }
                         }
                     }
@@ -81,6 +93,11 @@ class ChannelGridActivity : AppCompatActivity() {
         handlePendingOpenChannel()
     }
 
+    private fun channelsIn(group: String): List<ChannelAdapter.Entry> =
+        Channels.all.mapIndexedNotNull { index, channel ->
+            if (channel.group == group) ChannelAdapter.Entry(channel, index) else null
+        }
+
     private fun openChannelIndexFrom(intent: Intent?): Int? {
         if (intent == null || !intent.hasExtra(EXTRA_OPEN_CHANNEL_INDEX)) return null
         return intent.getIntExtra(EXTRA_OPEN_CHANNEL_INDEX, -1)
@@ -90,8 +107,8 @@ class ChannelGridActivity : AppCompatActivity() {
     private fun handlePendingOpenChannel() {
         val index = pendingOpenChannelIndex ?: return
         pendingOpenChannelIndex = null
-        // Let the grid finish laying out before launching the player.
-        binding.channelGrid.post { openPlayer(index) }
+        // Let the rows finish laying out before launching the player.
+        binding.root.post { openPlayer(index) }
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {

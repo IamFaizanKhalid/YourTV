@@ -1,33 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent"
-    android:layout_height="112dp"
+    android:layout_width="164dp"
+    android:layout_height="wrap_content"
     android:layout_margin="8dp"
     android:focusable="true"
     android:focusableInTouchMode="true"
-    android:foreground="?android:attr/selectableItemBackground"
+    android:foreground="@drawable/channel_focus"
     app:cardBackgroundColor="@color/surface"
-    app:cardCornerRadius="10dp"
+    app:cardCornerRadius="14dp"
     app:cardElevation="4dp">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:padding="18dp">
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="8dp">
 
         <FrameLayout
-            android:layout_width="64dp"
-            android:layout_height="64dp">
+            android:layout_width="124dp"
+            android:layout_height="124dp">
 
             <androidx.cardview.widget.CardView
-                android:layout_width="56dp"
-                android:layout_height="56dp"
-                android:layout_gravity="center"
+                android:layout_width="124dp"
+                android:layout_height="124dp"
                 app:cardBackgroundColor="@color/background"
-                app:cardCornerRadius="28dp"
+                app:cardCornerRadius="12dp"
                 app:cardElevation="0dp">
 
                 <ImageView
@@ -40,41 +39,28 @@
 
             <TextView
                 android:id="@+id/channelNumber"
-                android:layout_width="26dp"
-                android:layout_height="26dp"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
                 android:layout_gravity="bottom|end"
+                android:layout_margin="4dp"
                 android:background="@drawable/channel_number_badge"
                 android:elevation="2dp"
                 android:gravity="center"
                 android:textColor="@color/text_primary"
-                android:textSize="12sp"
+                android:textSize="11sp"
                 android:textStyle="bold" />
         </FrameLayout>
 
-        <LinearLayout
-            android:layout_width="0dp"
+        <TextView
+            android:id="@+id/channelName"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_weight="1"
-            android:orientation="vertical">
-
-            <TextView
-                android:id="@+id/channelName"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:textColor="@color/text_primary"
-                android:textSize="22sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/channelGroup"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
-                android:textColor="@color/text_secondary"
-                android:textSize="14sp" />
-        </LinearLayout>
+            android:layout_marginTop="8dp"
+            android:ellipsize="end"
+            android:gravity="center"
+            android:maxLines="1"
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
+            android:textStyle="bold" />
     </LinearLayout>
 </androidx.cardview.widget.CardView>
