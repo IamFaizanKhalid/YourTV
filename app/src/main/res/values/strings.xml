@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">YourTV</string>
+    <string name="app_name_prefix">Your</string>
+    <string name="app_name_suffix">TV</string>
     <string name="international_news">International News</string>
     <string name="pakistani_news">Pakistani News</string>
     <string name="loading_live_stream">Loading live stream…</string>
