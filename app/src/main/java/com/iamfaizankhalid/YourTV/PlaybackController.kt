@@ -15,6 +15,7 @@ import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.PlayerConstan
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.YouTubePlayerCallback
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.options.IFramePlayerOptions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -93,30 +94,39 @@ class PlaybackController(
             }
         )
 
-        binding.youtubePlayerView.addYouTubePlayerListener(
-            object : AbstractYouTubePlayerListener() {
-                override fun onStateChange(
-                    youTubePlayer: YouTubePlayer,
-                    state: PlayerConstants.PlayerState
-                ) {
-                    playerState = state
-                    Log.d(TAG, "State: $state")
-                    if (state == PlayerConstants.PlayerState.PLAYING) {
-                        Log.d(TAG, "Playing ${currentChannel?.name}")
-                        cancelStaleStreamCheck()
-                        refreshCachedStreamIfStale()
-                    }
-                }
-
-                override fun onError(
-                    youTubePlayer: YouTubePlayer,
-                    error: PlayerConstants.PlayerError
-                ) {
-                    Log.e(TAG, "Player error: $error")
-                    retryWithFreshStream()
+        val playerListener = object : AbstractYouTubePlayerListener() {
+            override fun onStateChange(
+                youTubePlayer: YouTubePlayer,
+                state: PlayerConstants.PlayerState
+            ) {
+                playerState = state
+                Log.d(TAG, "State: $state")
+                if (state == PlayerConstants.PlayerState.PLAYING) {
+                    Log.d(TAG, "Playing ${currentChannel?.name}")
+                    cancelStaleStreamCheck()
+                    refreshCachedStreamIfStale()
                 }
             }
-        )
+
+            override fun onError(
+                youTubePlayer: YouTubePlayer,
+                error: PlayerConstants.PlayerError
+            ) {
+                Log.e(TAG, "Player error: $error")
+                retryWithFreshStream()
+            }
+        }
+
+        // Hide the player UI and keep YouTube from offering related videos,
+        // annotations or captions. Privacy-enhanced mode uses youtube-nocookie.com.
+        val options = IFramePlayerOptions.Builder(activity)
+            .controls(0)
+            .rel(0)
+            .ivLoadPolicy(3)
+            .ccLoadPolicy(0)
+            .build()
+
+        binding.youtubePlayerView.initialize(playerListener, true, options)
     }
 
     fun openChannel(index: Int) {
