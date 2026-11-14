@@ -173,8 +173,8 @@ class PlaybackController(
         if (!isPlaying) return false
 
         when (event.keyCode) {
-            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_CHANNEL_UP -> changeChannel(1)
-            KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_CHANNEL_DOWN -> changeChannel(-1)
+            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_CHANNEL_UP -> changeChannel(-1)
+            KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_CHANNEL_DOWN -> changeChannel(1)
             KeyEvent.KEYCODE_BACK -> exitPlayback()
             else -> {
                 val number = event.keyCode - KeyEvent.KEYCODE_0
