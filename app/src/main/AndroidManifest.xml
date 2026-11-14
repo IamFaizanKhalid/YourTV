@@ -25,17 +25,6 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
-        <!-- <activity
-            android:name=".PlayerActivity"
-            android:exported="true"
-            android:configChanges="orientation|screenSize|keyboardHidden"
-            android:screenOrientation="landscape" /> -->
-        <activity
-            android:name=".PlayerActivity"
-            android:screenOrientation="landscape"
-            android:hardwareAccelerated="true"
-            android:exported="false" />
-
         <receiver
             android:name=".HomeScreenChannelReceiver"
             android:exported="true">

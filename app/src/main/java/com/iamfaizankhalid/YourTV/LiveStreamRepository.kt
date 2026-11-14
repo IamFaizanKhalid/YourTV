@@ -14,7 +14,9 @@ import java.util.concurrent.TimeUnit
 
 data class ChannelStream(
     val videoId: String,
-    val icon: Bitmap?
+    val icon: Bitmap?,
+    /** Epoch millis of when [videoId] was fetched from YouTube, or 0 if unknown. */
+    val fetchedAt: Long = 0L
 )
 
 class LiveStreamRepository(context: Context) {
@@ -22,7 +24,6 @@ class LiveStreamRepository(context: Context) {
         private const val TAG = "YourTVPlayer"
         private const val USER_AGENT =
             "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36"
-        private const val VIDEO_CACHE_MS = 6 * 60 * 60 * 1000L
         private const val ICON_CACHE_MS = 30L * 24 * 60 * 60 * 1000L
     }
 
@@ -41,30 +42,66 @@ class LiveStreamRepository(context: Context) {
     private val hexEscapeRegex = Regex("""\\x([0-9a-fA-F]{2})""")
     private val unicodeEscapeRegex = Regex("""\\u([0-9a-fA-F]{4})""")
 
+    /**
+     * Returns the last known stream for [channel] without doing any network work.
+     * Live URLs rarely change, so callers should try this first and only refresh
+     * when playback fails, or in the background if the cached id is not from today.
+     */
+    suspend fun cachedStream(channel: Channel): ChannelStream? =
+        withContext(Dispatchers.IO) {
+            val videoId = prefs.getString(channel.youtubeUrl, null)
+                ?: return@withContext null
+            ChannelStream(
+                videoId,
+                cachedIconFile(channel)?.let(::decodeIcon),
+                prefs.getLong(videoTimeKey(channel), 0L)
+            )
+        }
+
+    /**
+     * Refreshes the live video id in the background without touching the cached icon.
+     * Used by the once-a-day refresh while a cached stream is already playing.
+     */
+    suspend fun refreshVideoId(channel: Channel): ChannelStream? =
+        withContext(Dispatchers.IO) {
+            val page = fetchChannelPage(channel)
+            val videoId = page?.videoId ?: return@withContext null
+            saveVideoId(channel, videoId)
+            ChannelStream(
+                videoId,
+                cachedIconFile(channel)?.let(::decodeIcon),
+                System.currentTimeMillis()
+            )
+        }
+
     suspend fun resolve(channel: Channel, forceRefresh: Boolean = false): ChannelStream? =
         withContext(Dispatchers.IO) {
             val cachedVideoId = prefs.getString(channel.youtubeUrl, null)
-            val videoIsFresh =
-                !forceRefresh && System.currentTimeMillis() - prefs.getLong(
-                    videoTimeKey(channel),
-                    0L
-                ) < VIDEO_CACHE_MS
-            val page = if (forceRefresh || !videoIsFresh || !hasFreshIcon(channel)) {
-                fetchChannelPage(channel)
-            } else {
-                null
+
+            if (!forceRefresh && cachedVideoId != null) {
+                return@withContext ChannelStream(
+                    cachedVideoId,
+                    cachedIconFile(channel)?.let(::decodeIcon),
+                    prefs.getLong(videoTimeKey(channel), 0L)
+                )
             }
 
-            page?.videoId?.let { saveVideoId(channel, it) }
+            val page = fetchChannelPage(channel)
+            val fetchedVideoId = page?.videoId
+            fetchedVideoId?.let { saveVideoId(channel, it) }
 
-            val videoId = page?.videoId ?: cachedVideoId ?: return@withContext null
+            val videoId = fetchedVideoId ?: cachedVideoId ?: return@withContext null
             val iconFile = if (page?.iconUrl != null) {
                 updateCachedIcon(channel, page.iconUrl, forceRefresh)
             } else {
                 cachedIconFile(channel)
             }
 
-            ChannelStream(videoId, iconFile?.let(::decodeIcon))
+            ChannelStream(
+                videoId,
+                iconFile?.let(::decodeIcon),
+                prefs.getLong(videoTimeKey(channel), 0L)
+            )
         }
 
     suspend fun channelIcon(channel: Channel, forceRefresh: Boolean = false): Bitmap? =

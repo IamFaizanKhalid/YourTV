@@ -5,7 +5,11 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.KeyEvent
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.iamfaizankhalid.YourTV.databinding.ActivityChannelGridBinding
@@ -24,6 +28,7 @@ class ChannelGridActivity : AppCompatActivity() {
     private lateinit var binding: ActivityChannelGridBinding
     private lateinit var internationalAdapter: ChannelAdapter
     private lateinit var pakistaniAdapter: ChannelAdapter
+    private lateinit var playbackController: PlaybackController
     private val streamRepository by lazy { LiveStreamRepository(this) }
     private val homeScreenChannels by lazy { HomeScreenChannels(this) }
     private val iconLoadSemaphore = Semaphore(3)
@@ -34,11 +39,22 @@ class ChannelGridActivity : AppCompatActivity() {
     }
     private val handler = Handler(Looper.getMainLooper())
     private var pendingOpenChannelIndex: Int? = null
+    private var lastFocusedView: View? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityChannelGridBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
+        // The player view is inflated with the grid and starts loading its iframe now,
+        // with no video, so channel selection does not wait for player initialization.
+        playbackController = PlaybackController(this, binding) {
+            lastFocusedView?.requestFocus()
+        }
+        lifecycle.addObserver(binding.youtubePlayerView)
+        playbackController.initialize()
 
         internationalAdapter = ChannelAdapter(channelsIn("International")) { index ->
             openPlayer(index)
@@ -93,6 +109,20 @@ class ChannelGridActivity : AppCompatActivity() {
         handlePendingOpenChannel()
     }
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+
+        if (hasFocus) {
+            WindowInsetsControllerCompat(window, window.decorView)
+                .hide(WindowInsetsCompat.Type.systemBars())
+        }
+    }
+
+    override fun onDestroy() {
+        playbackController.release()
+        super.onDestroy()
+    }
+
     private fun channelsIn(group: String): List<ChannelAdapter.Entry> =
         Channels.all.mapIndexedNotNull { index, channel ->
             if (channel.group == group) ChannelAdapter.Entry(channel, index) else null
@@ -107,12 +137,14 @@ class ChannelGridActivity : AppCompatActivity() {
     private fun handlePendingOpenChannel() {
         val index = pendingOpenChannelIndex ?: return
         pendingOpenChannelIndex = null
-        // Let the rows finish laying out before launching the player.
+        // Let the rows finish laying out before showing the player.
         binding.root.post { openPlayer(index) }
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.action == KeyEvent.ACTION_DOWN) {
+            if (playbackController.handleKeyDown(event)) return true
+
             val number = event.keyCode - KeyEvent.KEYCODE_0
             val numberPad = event.keyCode - KeyEvent.KEYCODE_NUMPAD_0
             when {
@@ -137,8 +169,7 @@ class ChannelGridActivity : AppCompatActivity() {
     private fun openPlayer(index: Int) {
         handler.removeCallbacks(digitTimeout)
         digitBuffer = ""
-        startActivity(Intent(this, PlayerActivity::class.java).apply {
-            putExtra(PlayerActivity.EXTRA_CHANNEL_INDEX, index)
-        })
+        lastFocusedView = currentFocus
+        playbackController.openChannel(index)
     }
 }
