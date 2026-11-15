@@ -88,7 +88,7 @@ class HomeScreenChannels(context: Context) {
             .setDescription("Most watched news channels")
             .setInternalProviderId(CHANNEL_INTERNAL_ID)
             .setAppLinkIntent(
-                Intent(appContext, ChannelGridActivity::class.java)
+                Intent(appContext, PlayerActivity::class.java)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             )
 
@@ -153,13 +153,13 @@ class HomeScreenChannels(context: Context) {
     }
 
     private fun channelIntent(channel: Channel): Intent =
-        Intent(appContext, ChannelGridActivity::class.java).apply {
+        Intent(appContext, PlayerActivity::class.java).apply {
             addFlags(
                 Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or
                     Intent.FLAG_ACTIVITY_SINGLE_TOP
             )
-            putExtra(ChannelGridActivity.EXTRA_OPEN_CHANNEL_INDEX, Channels.all.indexOf(channel))
+            putExtra(PlayerActivity.EXTRA_CHANNEL_INDEX, Channels.all.indexOf(channel))
         }
 
     private fun channelLogo(): Bitmap? {
