@@ -33,7 +33,7 @@ class PlayerActivity : AppCompatActivity() {
         private const val TAG = "YourTVPlayer"
         private const val OVERLAY_TIMEOUT_MS = 3500L
         private const val STALE_STREAM_TIMEOUT_MS = 20_000L
-        private const val CHANNEL_NUMBER_TIMEOUT_MS = 900L
+        private const val CHANNEL_NUMBER_TIMEOUT_MS = 2_000L
     }
 
     private lateinit var binding: ActivityPlayerBinding
@@ -428,6 +428,8 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun onChannelNumber(digit: String) {
         digitBuffer += digit
+        // Show the digits as they are typed, like a TV channel display.
+        showOverlay(digitBuffer)
         handler.removeCallbacks(channelNumberTimeout)
         handler.postDelayed(channelNumberTimeout, CHANNEL_NUMBER_TIMEOUT_MS)
     }
