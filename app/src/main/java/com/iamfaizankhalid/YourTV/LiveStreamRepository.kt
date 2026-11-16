@@ -24,12 +24,12 @@ class LiveStreamRepository(context: Context) {
         private const val TAG = "YourTVPlayer"
         private const val USER_AGENT =
             "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36"
-        private const val ICON_CACHE_MS = 30L * 24 * 60 * 60 * 1000L
     }
 
     private val appContext = context.applicationContext
     private val prefs = appContext.getSharedPreferences("live_stream_cache", Context.MODE_PRIVATE)
     private val iconDir = File(appContext.filesDir, "channel_icons")
+    private val iconCache = mutableMapOf<String, Bitmap>()
     private val client = OkHttpClient.Builder()
         .followRedirects(true)
         .followSslRedirects(true)
@@ -53,7 +53,7 @@ class LiveStreamRepository(context: Context) {
                 ?: return@withContext null
             ChannelStream(
                 videoId,
-                cachedIconFile(channel)?.let(::decodeIcon),
+                cachedIcon(channel),
                 prefs.getLong(videoTimeKey(channel), 0L)
             )
         }
@@ -69,7 +69,7 @@ class LiveStreamRepository(context: Context) {
             saveVideoId(channel, videoId)
             ChannelStream(
                 videoId,
-                cachedIconFile(channel)?.let(::decodeIcon),
+                cachedIcon(channel),
                 System.currentTimeMillis()
             )
         }
@@ -81,7 +81,7 @@ class LiveStreamRepository(context: Context) {
             if (!forceRefresh && cachedVideoId != null) {
                 return@withContext ChannelStream(
                     cachedVideoId,
-                    cachedIconFile(channel)?.let(::decodeIcon),
+                    cachedIcon(channel),
                     prefs.getLong(videoTimeKey(channel), 0L)
                 )
             }
@@ -91,31 +91,29 @@ class LiveStreamRepository(context: Context) {
             fetchedVideoId?.let { saveVideoId(channel, it) }
 
             val videoId = fetchedVideoId ?: cachedVideoId ?: return@withContext null
-            val iconFile = if (page?.iconUrl != null) {
-                updateCachedIcon(channel, page.iconUrl, forceRefresh)
-            } else {
-                cachedIconFile(channel)
+            val iconUrl = page?.iconUrl
+            if (iconUrl != null) {
+                updateCachedIcon(channel, iconUrl, forceRefresh = false)
             }
 
             ChannelStream(
                 videoId,
-                iconFile?.let(::decodeIcon),
+                cachedIcon(channel),
                 prefs.getLong(videoTimeKey(channel), 0L)
             )
         }
 
     suspend fun channelIcon(channel: Channel, forceRefresh: Boolean = false): Bitmap? =
         withContext(Dispatchers.IO) {
-            val cachedIcon = cachedIconFile(channel)
-            if (!forceRefresh && hasFreshIcon(channel)) {
-                return@withContext cachedIcon?.let(::decodeIcon)
-            }
+            val cached = cachedIcon(channel)
+            if (!forceRefresh && cached != null) return@withContext cached
 
             val page = fetchChannelPage(channel)
             page?.videoId?.let { saveVideoId(channel, it) }
 
-            val iconUrl = page?.iconUrl ?: return@withContext cachedIcon?.let(::decodeIcon)
-            updateCachedIcon(channel, iconUrl, forceRefresh)?.let(::decodeIcon)
+            val iconUrl = page?.iconUrl ?: return@withContext cached
+            updateCachedIcon(channel, iconUrl, forceRefresh)
+            cachedIcon(channel)
         }
 
     fun cachedIconUrl(channel: Channel): String? =
@@ -210,28 +208,20 @@ class LiveStreamRepository(context: Context) {
         return decoded.replace("&amp;", "&")
     }
 
-    private fun hasFreshIcon(channel: Channel): Boolean =
-        cachedIconFile(channel) != null &&
-            System.currentTimeMillis() - prefs.getLong(iconTimeKey(channel), 0L) < ICON_CACHE_MS
-
     private fun updateCachedIcon(
         channel: Channel,
         iconUrl: String,
         forceRefresh: Boolean
     ): File? {
         val destination = iconFile(channel)
-        if (!forceRefresh && destination.exists() &&
-            System.currentTimeMillis() - prefs.getLong(iconTimeKey(channel), 0L) < ICON_CACHE_MS
-        ) {
+        if (!forceRefresh && destination.exists()) {
             prefs.edit().putString(iconUrlKey(channel), iconUrl).apply()
             return destination
         }
 
         if (downloadIcon(iconUrl, destination)) {
-            prefs.edit()
-                .putLong(iconTimeKey(channel), System.currentTimeMillis())
-                .putString(iconUrlKey(channel), iconUrl)
-                .apply()
+            synchronized(iconCache) { iconCache.remove(channel.youtubeUrl) }
+            prefs.edit().putString(iconUrlKey(channel), iconUrl).apply()
             return destination
         }
 
@@ -279,11 +269,20 @@ class LiveStreamRepository(context: Context) {
     private fun decodeIcon(file: File): Bitmap? =
         BitmapFactory.decodeFile(file.absolutePath)
 
+    private fun cachedIcon(channel: Channel): Bitmap? {
+        synchronized(iconCache) { iconCache[channel.youtubeUrl] }?.let { return it }
+        val file = cachedIconFile(channel) ?: return null
+        val bitmap = decodeIcon(file) ?: return null
+        synchronized(iconCache) { iconCache[channel.youtubeUrl] = bitmap }
+        return bitmap
+    }
+
     private fun saveVideoId(channel: Channel, videoId: String) {
+        // Commit so the id survives if the process is killed right after a lookup.
         prefs.edit()
             .putString(channel.youtubeUrl, videoId)
             .putLong(videoTimeKey(channel), System.currentTimeMillis())
-            .apply()
+            .commit()
     }
 
     private fun iconFile(channel: Channel): File {
@@ -295,8 +294,6 @@ class LiveStreamRepository(context: Context) {
         iconFile(channel).takeIf { it.exists() }
 
     private fun videoTimeKey(channel: Channel): String = "${channel.youtubeUrl}_time"
-
-    private fun iconTimeKey(channel: Channel): String = "${channel.youtubeUrl}_icon_time"
 
     private fun iconUrlKey(channel: Channel): String = "${channel.youtubeUrl}_icon_url"
 
