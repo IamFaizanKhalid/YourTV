@@ -36,6 +36,10 @@ class ChannelGridActivity : AppCompatActivity() {
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
+        binding.settingsButton.setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
+
         internationalAdapter = ChannelAdapter(channelsIn("International")) { index ->
             openPlayer(index)
         }

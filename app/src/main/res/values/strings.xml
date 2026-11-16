@@ -8,4 +8,13 @@
     <string name="loading_live_stream">Loading live stream…</string>
     <string name="stream_unavailable">This channel is not live right now</string>
     <string name="retry">Retry</string>
+    <string name="settings">Settings</string>
+    <string name="settings_subtitle">Control how YourTV behaves on your TV.</string>
+    <string name="auto_start_title">Open when the TV starts</string>
+    <string name="auto_start_description">Launch YourTV when the TV boots.</string>
+    <string name="auto_start_permission_title">Auto-start permission</string>
+    <string name="auto_start_permission_description">Android may block apps from opening on their own. Allow “Display over other apps” so YourTV can start automatically.</string>
+    <string name="auto_start_permission_allowed">Allowed</string>
+    <string name="auto_start_permission_missing">Not allowed</string>
+    <string name="allow">Allow</string>
 </resources>
