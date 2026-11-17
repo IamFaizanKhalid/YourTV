@@ -7,6 +7,10 @@
     <string name="pakistani_news">Pakistani News</string>
     <string name="loading_live_stream">Loading live stream…</string>
     <string name="stream_unavailable">This channel is not live right now</string>
+    <string name="status_loading">Loading…</string>
+    <string name="status_reconnecting">Reconnecting…</string>
+    <string name="status_slow_internet">Slow internet. Switching to a lower quality…</string>
+    <string name="status_waiting_for_internet">Waiting for the internet…</string>
     <string name="retry">Retry</string>
     <string name="settings">Settings</string>
     <string name="settings_subtitle">Control how YourTV behaves on your TV.</string>

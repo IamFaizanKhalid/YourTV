@@ -9,7 +9,6 @@ import android.util.Log
 import android.view.KeyEvent
 import android.view.View
 import android.view.WindowManager
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -23,6 +22,9 @@ import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.Abs
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.options.IFramePlayerOptions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.net.InetSocketAddress
+import java.net.Socket
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -34,6 +36,9 @@ class PlayerActivity : AppCompatActivity() {
         private const val OVERLAY_TIMEOUT_MS = 3500L
         private const val STALE_STREAM_TIMEOUT_MS = 20_000L
         private const val CHANNEL_NUMBER_TIMEOUT_MS = 2_000L
+        private const val SLOW_BUFFER_TIMEOUT_MS = 15_000L
+        private const val COLD_START_TIMEOUT_MS = 10_000L
+        private const val WAITING_RETRY_MS = 10_000L
     }
 
     private lateinit var binding: ActivityPlayerBinding
@@ -58,6 +63,11 @@ class PlayerActivity : AppCompatActivity() {
     private var cachedFetchedAt = 0L
     private var dailyRefreshStarted = false
     private var reloadOnResume = false
+    private var slowBufferCheck: Runnable? = null
+    private var retryCountdown: Runnable? = null
+    private var startupCheck: Runnable? = null
+    private var playerInitialized = false
+    private lateinit var playerListener: AbstractYouTubePlayerListener
     private var digitBuffer = ""
 
     private val channelNumberTimeout = Runnable {
@@ -70,6 +80,8 @@ class PlayerActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityPlayerBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        showStatus(getString(R.string.status_loading))
 
         streamRepository = LiveStreamRepository(this)
 
@@ -85,7 +97,7 @@ class PlayerActivity : AppCompatActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.decorView.post { hideSystemBars() }
 
-        val playerListener = object : AbstractYouTubePlayerListener() {
+        playerListener = object : AbstractYouTubePlayerListener() {
             override fun onReady(player: YouTubePlayer) {
                 youTubePlayer = player
                 loadCurrentChannel()
@@ -99,8 +111,15 @@ class PlayerActivity : AppCompatActivity() {
                 Log.d(TAG, "State: $state")
                 if (state == PlayerConstants.PlayerState.PLAYING) {
                     Log.d(TAG, "Playing ${currentChannel?.name}")
+                    hideStatus()
+                    cancelStartupCheck()
+                    cancelSlowBufferCheck()
+                    cancelRetryCountdown()
                     cancelStaleStreamCheck()
                     refreshCachedStreamIfStale()
+                } else if (state == PlayerConstants.PlayerState.BUFFERING) {
+                    cancelStartupCheck()
+                    scheduleSlowBufferMessage()
                 }
             }
 
@@ -115,7 +134,17 @@ class PlayerActivity : AppCompatActivity() {
 
         binding.youtubePlayerView.let { playerView ->
             lifecycle.addObserver(playerView)
+        }
 
+        // Always start with "Loading…"; the watchdog reports network problems.
+        initializePlayer()
+    }
+
+    private fun initializePlayer() {
+        if (playerInitialized) return
+        playerInitialized = true
+
+        binding.youtubePlayerView.let { playerView ->
             // Hide the player UI and keep YouTube from offering related videos,
             // annotations or captions. Privacy-enhanced mode uses youtube-nocookie.com.
             val options = IFramePlayerOptions.Builder(this)
@@ -128,6 +157,8 @@ class PlayerActivity : AppCompatActivity() {
 
             playerView.initialize(playerListener, true, options)
         }
+
+        scheduleColdStartCheck()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -178,6 +209,9 @@ class PlayerActivity : AppCompatActivity() {
         handler.removeCallbacks(hideOverlay)
         handler.removeCallbacks(channelNumberTimeout)
         cancelStaleStreamCheck()
+        cancelSlowBufferCheck()
+        cancelRetryCountdown()
+        cancelStartupCheck()
         super.onDestroy()
     }
 
@@ -204,10 +238,19 @@ class PlayerActivity : AppCompatActivity() {
         digitBuffer = ""
         handler.removeCallbacks(channelNumberTimeout)
         cancelStaleStreamCheck()
+        cancelSlowBufferCheck()
+        cancelRetryCountdown()
+        cancelStartupCheck()
 
         setOverlayIcon(null)
         showOverlay("${channelIndex + 1}  ${channel.name}")
+        showStatus(getString(R.string.status_loading))
         Log.d(TAG, "Loading ${channel.name}")
+
+        if (!isOnline()) {
+            showConnectionProblem()
+            return
+        }
 
         if (recordView) {
             viewStats.recordView(channel)
@@ -227,6 +270,8 @@ class PlayerActivity : AppCompatActivity() {
                 fetchStreamAndPlay(channel, generation)
             }
         }
+
+        scheduleStartupCheck(generation)
     }
 
     private fun fetchStreamAndPlay(channel: Channel, generation: Int) {
@@ -239,7 +284,7 @@ class PlayerActivity : AppCompatActivity() {
                 startPlayback(channel, stream, fromCache = false, generation)
             } catch (error: Throwable) {
                 Log.e(TAG, "Unable to load ${channel.name}", error)
-                if (generation == loadGeneration) showError(error)
+                if (generation == loadGeneration) showConnectionProblem()
             }
         }
     }
@@ -256,6 +301,7 @@ class PlayerActivity : AppCompatActivity() {
         currentVideoId = stream.videoId
         cachedFetchedAt = stream.fetchedAt
         dailyRefreshStarted = false
+        retryingStream = false
         setOverlayIcon(stream.icon)
         youTubePlayer?.loadVideo(stream.videoId, 0f)
 
@@ -318,7 +364,7 @@ class PlayerActivity : AppCompatActivity() {
         if (retryingStream) return
 
         if (!playingCachedStream) {
-            showError(IllegalStateException(getString(R.string.stream_unavailable)))
+            showConnectionProblem()
             return
         }
 
@@ -336,7 +382,7 @@ class PlayerActivity : AppCompatActivity() {
                 startPlayback(channel, stream, fromCache = false, generation)
             } catch (error: Throwable) {
                 Log.e(TAG, "Unable to refresh stream for ${channel.name}", error)
-                if (generation == loadGeneration) showError(error)
+                if (generation == loadGeneration) showConnectionProblem()
             }
         }
     }
@@ -362,12 +408,142 @@ class PlayerActivity : AppCompatActivity() {
         staleStreamCheck = null
     }
 
-    private fun showError(error: Throwable) {
-        Toast.makeText(
-            this,
-            error.message ?: getString(R.string.stream_unavailable),
-            Toast.LENGTH_SHORT
-        ).show()
+    private fun showStatus(text: String) {
+        binding.statusText.text = text
+        binding.statusScrim.visibility = View.VISIBLE
+        binding.statusOverlay.visibility = View.VISIBLE
+    }
+
+    private fun hideStatus() {
+        binding.statusScrim.visibility = View.GONE
+        binding.statusOverlay.visibility = View.GONE
+    }
+
+    private fun scheduleSlowBufferMessage() {
+        if (retryCountdown != null) return
+        cancelSlowBufferCheck()
+        val check = Runnable {
+            slowBufferCheck = null
+            if (retryCountdown != null ||
+                playerState != PlayerConstants.PlayerState.BUFFERING
+            ) {
+                return@Runnable
+            }
+            if (!isOnline()) {
+                showConnectionProblem()
+                return@Runnable
+            }
+            // A validated Wi-Fi network can still have no working internet, so probe
+            // before blaming the connection speed.
+            lifecycleScope.launch {
+                val reachable = withContext(Dispatchers.IO) { canReachInternet() }
+                if (retryCountdown == null &&
+                    playerState == PlayerConstants.PlayerState.BUFFERING
+                ) {
+                    if (reachable) {
+                        showStatus(getString(R.string.status_slow_internet))
+                    } else {
+                        showConnectionProblem()
+                    }
+                }
+            }
+        }
+        slowBufferCheck = check
+        handler.postDelayed(check, SLOW_BUFFER_TIMEOUT_MS)
+    }
+
+    private fun cancelSlowBufferCheck() {
+        slowBufferCheck?.let(handler::removeCallbacks)
+        slowBufferCheck = null
+    }
+
+    private fun showConnectionProblem() {
+        cancelStartupCheck()
+        cancelSlowBufferCheck()
+        showWaitingForInternet()
+    }
+
+    private fun showWaitingForInternet() {
+        showStatus(getString(R.string.status_waiting_for_internet))
+        cancelRetryCountdown()
+        val retry = Runnable {
+            retryCountdown = null
+            retryCurrentChannel()
+        }
+        retryCountdown = retry
+        handler.postDelayed(retry, WAITING_RETRY_MS)
+    }
+
+    private fun cancelRetryCountdown() {
+        retryCountdown?.let(handler::removeCallbacks)
+        retryCountdown = null
+    }
+
+    private fun scheduleStartupCheck(generation: Int) {
+        cancelStartupCheck()
+        val check = Runnable {
+            startupCheck = null
+            if (generation != loadGeneration) return@Runnable
+            // The player never started: the iframe or the network is unreachable.
+            if (playerState != PlayerConstants.PlayerState.PLAYING &&
+                playerState != PlayerConstants.PlayerState.BUFFERING
+            ) {
+                showConnectionProblem()
+            }
+        }
+        startupCheck = check
+        handler.postDelayed(check, STALE_STREAM_TIMEOUT_MS)
+    }
+
+    private fun cancelStartupCheck() {
+        startupCheck?.let(handler::removeCallbacks)
+        startupCheck = null
+    }
+
+    private fun scheduleColdStartCheck() {
+        cancelStartupCheck()
+        val check = Runnable {
+            startupCheck = null
+            if (playerState != PlayerConstants.PlayerState.PLAYING &&
+                playerState != PlayerConstants.PlayerState.BUFFERING
+            ) {
+                showConnectionProblem()
+            }
+        }
+        startupCheck = check
+        handler.postDelayed(check, COLD_START_TIMEOUT_MS)
+    }
+
+    private fun retryCurrentChannel() {
+        if (!isOnline()) {
+            // Keep the countdown visible instead of flashing "Loading…".
+            showConnectionProblem()
+            return
+        }
+        if (!playerInitialized) {
+            // The network was down at launch, so the embedded player was never started.
+            initializePlayer()
+            return
+        }
+        if (youTubePlayer == null) {
+            // The player was started but never became ready; rebuild it.
+            recreate()
+            return
+        }
+        // Retrying should not count as another view in the home-screen ranking.
+        loadCurrentChannel(recordView = false)
+    }
+
+    private fun isOnline(): Boolean = NetworkState.isOnline(this)
+
+    /** Quick real-world check: a validated network can still have no internet. */
+    private fun canReachInternet(): Boolean = try {
+        Socket().use { socket ->
+            socket.connect(InetSocketAddress("www.youtube.com", 443), 5_000)
+        }
+        true
+    } catch (error: Exception) {
+        false
     }
 
     private fun showOverlay(text: String) {

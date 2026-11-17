@@ -2,6 +2,7 @@
 <resources>
     <style name="Theme.YourTV" parent="Theme.AppCompat.NoActionBar">
         <item name="android:windowBackground">@color/background</item>
+        <item name="android:windowDisablePreview">true</item>
         <item name="android:colorAccent">@color/accent</item>
         <item name="android:windowFullscreen">true</item>
         <item name="android:windowNoTitle">true</item>

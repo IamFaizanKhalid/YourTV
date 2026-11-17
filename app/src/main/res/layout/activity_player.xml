@@ -11,6 +11,12 @@
         android:layout_height="match_parent"
         app:enableAutomaticInitialization="false" />
 
+    <View
+        android:id="@+id/statusScrim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/background" />
+
     <LinearLayout
         android:id="@+id/playerOverlay"
         android:layout_width="wrap_content"
@@ -48,5 +54,31 @@
             android:textColor="@color/text_primary"
             android:textSize="26sp"
             android:textStyle="bold" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/statusOverlay"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <ProgressBar
+            android:id="@+id/statusProgress"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:indeterminate="true"
+            android:indeterminateTint="@color/accent" />
+
+        <TextView
+            android:id="@+id/statusText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="center"
+            android:textColor="@color/text_primary"
+            android:textSize="24sp" />
     </LinearLayout>
 </FrameLayout>
