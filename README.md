@@ -16,6 +16,5 @@ Simple no-nonsense TV app to watch live news channels from YouTube.
 - Registers as a launcher to deliver old-school TV experience.
 
   _(Note: If your TV doesn't allow to change default launcher, ask AI for instructions on how to do it.
-
-    Try `adb` to disable the existing one.)_
+  Try `adb` to disable the existing one.)_
 
