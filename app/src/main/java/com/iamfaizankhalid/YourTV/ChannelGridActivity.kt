@@ -54,10 +54,6 @@ class ChannelGridActivity : AppCompatActivity() {
             LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
         binding.pakistaniRow.adapter = pakistaniAdapter
 
-        binding.internationalRow.post {
-            binding.internationalRow.getChildAt(0)?.requestFocus()
-        }
-
         lifecycleScope.launch {
             withContext(Dispatchers.IO) { homeScreenChannels.sync() }
 
@@ -75,6 +71,29 @@ class ChannelGridActivity : AppCompatActivity() {
             }
 
             withContext(Dispatchers.IO) { homeScreenChannels.sync() }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Select the channel that was playing when the user came back from the player.
+        binding.root.post { focusCurrentChannel() }
+    }
+
+    private fun focusCurrentChannel() {
+        val index = LastChannel.get(this)
+        val row = if (Channels.all.getOrNull(index)?.group == "Pakistan") {
+            binding.pakistaniRow
+        } else {
+            binding.internationalRow
+        }
+        val adapter = row.adapter as? ChannelAdapter ?: return
+        val position = adapter.positionOf(index)
+        if (position < 0) return
+
+        row.scrollToPosition(position)
+        row.post {
+            row.findViewHolderForAdapterPosition(position)?.itemView?.requestFocus()
         }
     }
 

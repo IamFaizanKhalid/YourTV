@@ -17,6 +17,8 @@ class ChannelAdapter(
 
     private val icons = mutableMapOf<Int, Bitmap>()
 
+    fun positionOf(index: Int): Int = entries.indexOfFirst { it.index == index }
+
     fun setChannelIcon(index: Int, icon: Bitmap) {
         val position = entries.indexOfFirst { it.index == index }
         if (position < 0) return
