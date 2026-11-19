@@ -546,8 +546,9 @@ class PlayerActivity : AppCompatActivity() {
         false
     }
 
-    private fun showOverlay(text: String) {
+    private fun showOverlay(text: String, showIcon: Boolean = true) {
         binding.playerOverlayText.text = text
+        binding.playerOverlayIcon.visibility = if (showIcon) View.VISIBLE else View.GONE
         binding.playerOverlay.visibility = View.VISIBLE
         handler.removeCallbacks(hideOverlay)
         handler.postDelayed(hideOverlay, OVERLAY_TIMEOUT_MS)
@@ -605,7 +606,7 @@ class PlayerActivity : AppCompatActivity() {
     private fun onChannelNumber(digit: String) {
         digitBuffer += digit
         // Show the digits as they are typed, like a TV channel display.
-        showOverlay(digitBuffer)
+        showOverlay(digitBuffer, showIcon = false)
         handler.removeCallbacks(channelNumberTimeout)
         handler.postDelayed(channelNumberTimeout, CHANNEL_NUMBER_TIMEOUT_MS)
     }
