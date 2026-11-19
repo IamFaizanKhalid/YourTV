@@ -51,6 +51,7 @@ class PlayerActivity : AppCompatActivity() {
     private val hideOverlay = Runnable {
         binding.playerOverlay.visibility = View.GONE
     }
+    private val hideStatusMessage = Runnable { hideStatus() }
 
     private var channelIndex = 0
     private var currentChannel: Channel? = null
@@ -64,6 +65,9 @@ class PlayerActivity : AppCompatActivity() {
     private var dailyRefreshStarted = false
     private var reloadOnResume = false
     private var slowBufferCheck: Runnable? = null
+    private var slowBufferWarningShown = false
+    private var hasStartedPlayback = false
+    private var lastQualityRank = 0
     private var retryCountdown: Runnable? = null
     private var startupCheck: Runnable? = null
     private var playerInitialized = false
@@ -80,8 +84,6 @@ class PlayerActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityPlayerBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        showStatus(getString(R.string.status_loading))
 
         streamRepository = LiveStreamRepository(this)
 
@@ -111,14 +113,25 @@ class PlayerActivity : AppCompatActivity() {
                 Log.d(TAG, "State: $state")
                 if (state == PlayerConstants.PlayerState.PLAYING) {
                     Log.d(TAG, "Playing ${currentChannel?.name}")
+                    hasStartedPlayback = true
                     hideStatus()
                     cancelStartupCheck()
                     cancelSlowBufferCheck()
                     cancelRetryCountdown()
                     cancelStaleStreamCheck()
+                    slowBufferWarningShown = false
                     refreshCachedStreamIfStale()
                 } else if (state == PlayerConstants.PlayerState.BUFFERING) {
                     cancelStartupCheck()
+                    if (retryCountdown == null && !slowBufferWarningShown) {
+                        // Do not leave the user without feedback while the video buffers.
+                        showStatus(
+                            getString(
+                                if (hasStartedPlayback) R.string.status_reconnecting
+                                else R.string.status_loading
+                            )
+                        )
+                    }
                     scheduleSlowBufferMessage()
                 }
             }
@@ -129,6 +142,21 @@ class PlayerActivity : AppCompatActivity() {
             ) {
                 Log.e(TAG, "Player error: $error")
                 retryWithFreshStream()
+            }
+
+            override fun onPlaybackQualityChange(
+                youTubePlayer: YouTubePlayer,
+                playbackQuality: PlayerConstants.PlaybackQuality
+            ) {
+                val rank = qualityRank(playbackQuality)
+                Log.d(TAG, "Quality: $playbackQuality")
+                if (rank in 1 until lastQualityRank) {
+                    // YouTube dropped the quality because the connection is struggling.
+                    showStatus(getString(R.string.status_slow_internet))
+                    handler.removeCallbacks(hideStatusMessage)
+                    handler.postDelayed(hideStatusMessage, OVERLAY_TIMEOUT_MS)
+                }
+                if (rank > 0) lastQualityRank = rank
             }
         }
 
@@ -231,6 +259,9 @@ class PlayerActivity : AppCompatActivity() {
         playingCachedStream = false
         retryingStream = false
         playerState = PlayerConstants.PlayerState.UNKNOWN
+        slowBufferWarningShown = false
+        hasStartedPlayback = false
+        lastQualityRank = 0
         currentVideoId = null
         cachedFetchedAt = 0L
         dailyRefreshStarted = false
@@ -251,14 +282,25 @@ class PlayerActivity : AppCompatActivity() {
             return
         }
 
-        showStatus(getString(R.string.status_loading))
-
-        if (recordView) {
-            viewStats.recordView(channel)
-            lifecycleScope.launch(Dispatchers.IO) { homeScreenChannels.sync() }
-        }
-
         lifecycleScope.launch {
+            // Only show "Loading…" once the internet is actually reachable;
+            // otherwise keep "Waiting for the internet…" visible.
+            val reachable = withContext(Dispatchers.IO) { canReachInternet() }
+            if (generation != loadGeneration) return@launch
+            if (!reachable) {
+                showConnectionProblem()
+                return@launch
+            }
+
+            showStatus(getString(R.string.status_loading))
+
+            if (recordView) {
+                viewStats.recordView(channel)
+                lifecycleScope.launch(Dispatchers.IO) { homeScreenChannels.sync() }
+            }
+
+            scheduleStartupCheck(generation)
+
             // Live URLs rarely change: play the last known one immediately and only
             // look up a fresh URL if it turns out to be dead. If the cached id is
             // from a previous day, it is re-checked during playback.
@@ -271,8 +313,6 @@ class PlayerActivity : AppCompatActivity() {
                 fetchStreamAndPlay(channel, generation)
             }
         }
-
-        scheduleStartupCheck(generation)
     }
 
     private fun fetchStreamAndPlay(channel: Channel, generation: Int) {
@@ -410,12 +450,14 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun showStatus(text: String) {
+        handler.removeCallbacks(hideStatusMessage)
         binding.statusText.text = text
         binding.statusScrim.visibility = View.VISIBLE
         binding.statusOverlay.visibility = View.VISIBLE
     }
 
     private fun hideStatus() {
+        handler.removeCallbacks(hideStatusMessage)
         binding.statusScrim.visibility = View.GONE
         binding.statusOverlay.visibility = View.GONE
     }
@@ -425,11 +467,12 @@ class PlayerActivity : AppCompatActivity() {
         cancelSlowBufferCheck()
         val check = Runnable {
             slowBufferCheck = null
-            if (retryCountdown != null ||
-                playerState != PlayerConstants.PlayerState.BUFFERING
-            ) {
-                return@Runnable
-            }
+            if (retryCountdown != null) return@Runnable
+            // Once the warning is shown, keep recovering even if the player
+            // downgraded its state instead of staying in BUFFERING.
+            val stalled = playerState == PlayerConstants.PlayerState.BUFFERING ||
+                (slowBufferWarningShown && playerState != PlayerConstants.PlayerState.PLAYING)
+            if (!stalled) return@Runnable
             if (!isOnline()) {
                 showConnectionProblem()
                 return@Runnable
@@ -438,13 +481,27 @@ class PlayerActivity : AppCompatActivity() {
             // before blaming the connection speed.
             lifecycleScope.launch {
                 val reachable = withContext(Dispatchers.IO) { canReachInternet() }
-                if (retryCountdown == null &&
-                    playerState == PlayerConstants.PlayerState.BUFFERING
-                ) {
-                    if (reachable) {
-                        showStatus(getString(R.string.status_slow_internet))
-                    } else {
-                        showConnectionProblem()
+                if (retryCountdown == null) {
+                    val stillStalled =
+                        playerState == PlayerConstants.PlayerState.BUFFERING ||
+                            (slowBufferWarningShown &&
+                                playerState != PlayerConstants.PlayerState.PLAYING)
+                    if (stillStalled) {
+                        if (reachable) {
+                            if (slowBufferWarningShown) {
+                                // Still stalled after the warning: the connection may
+                                // have recovered on another provider without the player
+                                // noticing, so restart the stream instead of staying stuck.
+                                if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                                    loadCurrentChannel(recordView = false)
+                                }
+                            } else {
+                                slowBufferWarningShown = true
+                                scheduleSlowBufferMessage()
+                            }
+                        } else {
+                            showConnectionProblem()
+                        }
                     }
                 }
             }
@@ -548,6 +605,16 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun isOnline(): Boolean = NetworkState.isOnline(this)
+
+    private fun qualityRank(quality: PlayerConstants.PlaybackQuality): Int = when (quality) {
+        PlayerConstants.PlaybackQuality.SMALL -> 1
+        PlayerConstants.PlaybackQuality.MEDIUM -> 2
+        PlayerConstants.PlaybackQuality.LARGE -> 3
+        PlayerConstants.PlaybackQuality.HD720 -> 4
+        PlayerConstants.PlaybackQuality.HD1080 -> 5
+        PlayerConstants.PlaybackQuality.HIGH_RES -> 6
+        else -> 0
+    }
 
     /** Quick real-world check: a validated network can still have no internet. */
     private fun canReachInternet(): Boolean = try {
