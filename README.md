@@ -1,7 +1,7 @@
 
 <div align="center"> 
     <img src="icon.svg">
-    <h1>Your![TV](https://img.shields.io/badge/TV-E53935)</h1>
+    <h1>Your ![TV](https://img.shields.io/badge/TV-E53935)</h1>
 </div>
 
 Simple no-nonsense TV app to watch live news channels from YouTube.
