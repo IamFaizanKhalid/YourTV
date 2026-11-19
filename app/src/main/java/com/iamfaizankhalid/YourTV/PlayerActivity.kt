@@ -244,13 +244,14 @@ class PlayerActivity : AppCompatActivity() {
 
         setOverlayIcon(null)
         showOverlay("${channelIndex + 1}  ${channel.name}")
-        showStatus(getString(R.string.status_loading))
         Log.d(TAG, "Loading ${channel.name}")
 
         if (!isOnline()) {
             showConnectionProblem()
             return
         }
+
+        showStatus(getString(R.string.status_loading))
 
         if (recordView) {
             viewStats.recordView(channel)
@@ -520,18 +521,30 @@ class PlayerActivity : AppCompatActivity() {
             showConnectionProblem()
             return
         }
-        if (!playerInitialized) {
-            // The network was down at launch, so the embedded player was never started.
-            initializePlayer()
-            return
+        val generation = loadGeneration
+        lifecycleScope.launch {
+            // A connected network is not enough: only retry once the internet is
+            // actually reachable, otherwise "Waiting for internet" would flash
+            // back to "Loading…" and fail again.
+            val reachable = withContext(Dispatchers.IO) { canReachInternet() }
+            if (generation != loadGeneration) return@launch
+            if (!reachable) {
+                showConnectionProblem()
+                return@launch
+            }
+            if (!playerInitialized) {
+                // The network was down at launch, so the embedded player was never started.
+                initializePlayer()
+                return@launch
+            }
+            if (youTubePlayer == null) {
+                // The player was started but never became ready; rebuild it.
+                recreate()
+                return@launch
+            }
+            // Retrying should not count as another view in the home-screen ranking.
+            loadCurrentChannel(recordView = false)
         }
-        if (youTubePlayer == null) {
-            // The player was started but never became ready; rebuild it.
-            recreate()
-            return
-        }
-        // Retrying should not count as another view in the home-screen ranking.
-        loadCurrentChannel(recordView = false)
     }
 
     private fun isOnline(): Boolean = NetworkState.isOnline(this)
