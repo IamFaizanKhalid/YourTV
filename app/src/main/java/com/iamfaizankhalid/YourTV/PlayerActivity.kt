@@ -79,6 +79,7 @@ class PlayerActivity : AppCompatActivity() {
     private var digitBuffer = ""
     private var channelListOpen = false
     private var previousChannelIndex: Int? = null
+    private var channelListFocusIndex = 0
     private var ignoreOkUntil = 0L
     private var backExitArmed = false
     private val backSwitch = Runnable {
@@ -685,7 +686,8 @@ class PlayerActivity : AppCompatActivity() {
             }
 
             if (channelListOpen) {
-                // Let the list handle navigation and OK.
+                if (handleChannelListNavigation(event.keyCode)) return true
+                // Let the list handle OK and anything else.
                 return super.dispatchKeyEvent(event)
             }
 
@@ -718,6 +720,47 @@ class PlayerActivity : AppCompatActivity() {
             }
         }
         return super.dispatchKeyEvent(event)
+    }
+
+    private fun handleChannelListNavigation(keyCode: Int): Boolean {
+        when (keyCode) {
+            KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_CHANNEL_DOWN -> {
+                moveChannelListFocus(1)
+                return true
+            }
+            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_CHANNEL_UP -> {
+                moveChannelListFocus(-1)
+                return true
+            }
+            KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                if (currentFocus != binding.channelListSettingsButton) {
+                    binding.channelListSettingsButton.requestFocus()
+                    return true
+                }
+            }
+            KeyEvent.KEYCODE_DPAD_LEFT -> {
+                if (currentFocus == binding.channelListSettingsButton) {
+                    focusChannelRow(channelListFocusIndex)
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    private fun moveChannelListFocus(delta: Int) {
+        if (Channels.all.isEmpty()) return
+        focusChannelRow((channelListFocusIndex + delta).mod(Channels.all.size))
+    }
+
+    private fun focusChannelRow(index: Int) {
+        if (index !in Channels.all.indices) return
+        channelListFocusIndex = index
+        binding.channelList.scrollToPosition(index)
+        binding.channelList.post {
+            binding.channelList.findViewHolderForAdapterPosition(index)
+                ?.itemView?.requestFocus()
+        }
     }
 
     private fun changeChannel(delta: Int) {
@@ -755,6 +798,7 @@ class PlayerActivity : AppCompatActivity() {
     private fun openChannelList() {
         cancelBackExit()
         channelListOpen = true
+        channelListFocusIndex = channelIndex
         binding.channelList.layoutManager = LinearLayoutManager(this)
         binding.channelList.adapter = ChannelListAdapter(channelIndex) { index ->
             closeChannelList()
