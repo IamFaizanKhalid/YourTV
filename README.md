@@ -9,6 +9,7 @@ Simple no-nonsense TV app to watch live news channels from YouTube.
 ## Features
 
 - Pakistani and international news channels.
+- Mimics old-school TV experience
 - Channel numbers
 - Up/Down buttons to change channels
 - Most watched channel list on the home screen
