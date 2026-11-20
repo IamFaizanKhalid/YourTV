@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import android.view.KeyEvent
 import android.view.View
@@ -15,6 +16,8 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.iamfaizankhalid.YourTV.databinding.ActivityPlayerBinding
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.PlayerConstants
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
@@ -39,6 +42,7 @@ class PlayerActivity : AppCompatActivity() {
         private const val SLOW_BUFFER_TIMEOUT_MS = 15_000L
         private const val COLD_START_TIMEOUT_MS = 10_000L
         private const val WAITING_RETRY_MS = 10_000L
+        private const val EXIT_BACK_DELAY_MS = 1_000L
     }
 
     private lateinit var binding: ActivityPlayerBinding
@@ -73,6 +77,14 @@ class PlayerActivity : AppCompatActivity() {
     private var playerInitialized = false
     private lateinit var playerListener: AbstractYouTubePlayerListener
     private var digitBuffer = ""
+    private var channelListOpen = false
+    private var previousChannelIndex: Int? = null
+    private var ignoreOkUntil = 0L
+    private var backExitArmed = false
+    private val backSwitch = Runnable {
+        backExitArmed = false
+        switchToLastChannel()
+    }
 
     private val channelNumberTimeout = Runnable {
         val number = digitBuffer.toIntOrNull()?.minus(1) ?: -1
@@ -84,6 +96,8 @@ class PlayerActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityPlayerBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        // The OK press that launched the app from the TV launcher can arrive here too.
+        ignoreOkUntil = SystemClock.uptimeMillis() + 800
 
         streamRepository = LiveStreamRepository(this)
 
@@ -164,6 +178,17 @@ class PlayerActivity : AppCompatActivity() {
             lifecycle.addObserver(playerView)
         }
 
+        binding.channelListSettingsButton.setOnClickListener {
+            closeChannelList()
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
+
+        binding.channelList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                updateChannelScrollbar()
+            }
+        })
+
         // Always start with "Loading…"; the watchdog reports network problems.
         initializePlayer()
     }
@@ -219,6 +244,7 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
+        if (channelListOpen) closeChannelList()
         super.onStop()
         if (currentVideoId != null) {
             reloadOnResume = true
@@ -236,6 +262,7 @@ class PlayerActivity : AppCompatActivity() {
     override fun onDestroy() {
         handler.removeCallbacks(hideOverlay)
         handler.removeCallbacks(channelNumberTimeout)
+        cancelBackExit()
         cancelStaleStreamCheck()
         cancelSlowBufferCheck()
         cancelRetryCountdown()
@@ -640,12 +667,33 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.action == KeyEvent.ACTION_DOWN) {
+            if (event.keyCode == KeyEvent.KEYCODE_BACK) {
+                if (channelListOpen) {
+                    closeChannelList()
+                    cancelBackExit()
+                } else if (backExitArmed) {
+                    // Second Back: exit without switching channels.
+                    cancelBackExit()
+                    finishAffinity()
+                    return true
+                } else {
+                    // Wait briefly for a possible second Back before switching.
+                    backExitArmed = true
+                    handler.postDelayed(backSwitch, EXIT_BACK_DELAY_MS)
+                }
+                return true
+            }
+
+            if (channelListOpen) {
+                // Let the list handle navigation and OK.
+                return super.dispatchKeyEvent(event)
+            }
+
             when (event.keyCode) {
-                KeyEvent.KEYCODE_BACK,
                 KeyEvent.KEYCODE_DPAD_CENTER,
                 KeyEvent.KEYCODE_ENTER,
                 KeyEvent.KEYCODE_NUMPAD_ENTER -> {
-                    openChannelGrid()
+                    if (SystemClock.uptimeMillis() >= ignoreOkUntil) openChannelList()
                     return true
                 }
                 KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_CHANNEL_UP -> {
@@ -678,9 +726,22 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun changeChannelTo(index: Int) {
         if (index !in Channels.all.indices) return
+        if (index == channelIndex) return
+        previousChannelIndex = channelIndex
         channelIndex = index
         LastChannel.set(this, index)
         loadCurrentChannel()
+    }
+
+    private fun switchToLastChannel() {
+        val last = previousChannelIndex ?: return
+        // Swapping makes repeated Back presses toggle between the two channels.
+        changeChannelTo(last)
+    }
+
+    private fun cancelBackExit() {
+        handler.removeCallbacks(backSwitch)
+        backExitArmed = false
     }
 
     private fun onChannelNumber(digit: String) {
@@ -691,10 +752,50 @@ class PlayerActivity : AppCompatActivity() {
         handler.postDelayed(channelNumberTimeout, CHANNEL_NUMBER_TIMEOUT_MS)
     }
 
-    private fun openChannelGrid() {
-        startActivity(
-            Intent(this, ChannelGridActivity::class.java)
-                .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
-        )
+    private fun openChannelList() {
+        cancelBackExit()
+        channelListOpen = true
+        binding.channelList.layoutManager = LinearLayoutManager(this)
+        binding.channelList.adapter = ChannelListAdapter(channelIndex) { index ->
+            closeChannelList()
+            changeChannelTo(index)
+        }
+        binding.channelListOverlay.visibility = View.VISIBLE
+        binding.channelList.scrollToPosition(channelIndex)
+        binding.channelList.post {
+            updateChannelScrollbar()
+            binding.channelList.findViewHolderForAdapterPosition(channelIndex)
+                ?.itemView?.requestFocus()
+                ?: binding.channelList.requestFocus()
+        }
+    }
+
+    private fun updateChannelScrollbar() {
+        val layoutManager = binding.channelList.layoutManager as? LinearLayoutManager ?: return
+        val first = layoutManager.findFirstVisibleItemPosition()
+        val last = layoutManager.findLastVisibleItemPosition()
+        val total = Channels.all.size
+        val track = binding.channelList.height
+        if (first < 0 || last < 0 || last - first + 1 >= total || track <= 0) {
+            binding.channelListScrollbar.visibility = View.GONE
+            return
+        }
+
+        val visible = last - first + 1
+        val minThumb = (40 * resources.displayMetrics.density).toInt()
+        val thumb = maxOf(minThumb, track * visible / total)
+        val maxScroll = total - visible
+        val offset = if (maxScroll > 0) (track - thumb) * first / maxScroll else 0
+
+        binding.channelListScrollbar.visibility = View.VISIBLE
+        binding.channelListScrollbar.layoutParams =
+            binding.channelListScrollbar.layoutParams.apply { height = thumb }
+        binding.channelListScrollbar.translationY = offset.toFloat()
+    }
+
+    private fun closeChannelList() {
+        channelListOpen = false
+        binding.channelListOverlay.visibility = View.GONE
+        binding.channelList.adapter = null
     }
 }
