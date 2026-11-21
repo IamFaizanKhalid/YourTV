@@ -19,3 +19,4 @@ Simple no-nonsense TV app to watch live news channels from YouTube.
   _(Note: If your TV doesn't allow to change default launcher, ask AI for instructions on how to do it.
   Try `adb` to disable the existing one.)_
 
+- Bandwidth limiting to reduce data consumption.
