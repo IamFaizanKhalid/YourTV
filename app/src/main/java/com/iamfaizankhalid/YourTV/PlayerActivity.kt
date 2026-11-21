@@ -74,6 +74,7 @@ class PlayerActivity : AppCompatActivity() {
     private var slowBufferCheck: Runnable? = null
     private var slowBufferWarningShown = false
     private var hasStartedPlayback = false
+    private var switchingToLatestStream = false
     private var lastQualityRank = 0
     private var retryCountdown: Runnable? = null
     private var startupCheck: Runnable? = null
@@ -141,6 +142,7 @@ class PlayerActivity : AppCompatActivity() {
                 if (state == PlayerConstants.PlayerState.PLAYING) {
                     Log.d(TAG, "Playing ${currentChannel?.name}")
                     hasStartedPlayback = true
+                    switchingToLatestStream = false
                     hideStatus()
                     cancelStartupCheck()
                     cancelSlowBufferCheck()
@@ -150,7 +152,9 @@ class PlayerActivity : AppCompatActivity() {
                     refreshCachedStreamIfStale()
                 } else if (state == PlayerConstants.PlayerState.BUFFERING) {
                     cancelStartupCheck()
-                    if (retryCountdown == null && !slowBufferWarningShown) {
+                    if (retryCountdown == null && !slowBufferWarningShown &&
+                        !switchingToLatestStream
+                    ) {
                         // Do not leave the user without feedback while the video buffers.
                         showStatus(
                             getString(
@@ -360,6 +364,7 @@ class PlayerActivity : AppCompatActivity() {
         playerState = PlayerConstants.PlayerState.UNKNOWN
         slowBufferWarningShown = false
         hasStartedPlayback = false
+        switchingToLatestStream = false
         lastQualityRank = 0
         currentVideoId = null
         cachedFetchedAt = 0L
@@ -437,8 +442,13 @@ class PlayerActivity : AppCompatActivity() {
     ) {
         if (generation != loadGeneration) return
 
+        val previousVideoId = currentVideoId
         playingCachedStream = fromCache
         currentVideoId = stream.videoId
+        if (previousVideoId != null && previousVideoId != stream.videoId) {
+            switchingToLatestStream = true
+            showStatus(getString(R.string.status_switching_to_latest_stream))
+        }
         cachedFetchedAt = stream.fetchedAt
         dailyRefreshStarted = false
         retryingStream = false
@@ -615,6 +625,7 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun showConnectionProblem() {
+        switchingToLatestStream = false
         cancelStartupCheck()
         cancelSlowBufferCheck()
         showWaitingForInternet()
