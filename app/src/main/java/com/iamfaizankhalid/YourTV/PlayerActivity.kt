@@ -187,6 +187,7 @@ class PlayerActivity : AppCompatActivity() {
                 playbackQuality: PlayerConstants.PlaybackQuality
             ) {
                 Log.d(TAG, "Quality: $playbackQuality")
+                binding.playbackResolution.text = qualityLabel(playbackQuality)
             }
         }
 
@@ -457,6 +458,7 @@ class PlayerActivity : AppCompatActivity() {
         hasStartedPlayback = false
         switchingToLatestStream = false
         currentVideoId = null
+        binding.playbackResolution.text = ""
         cachedFetchedAt = 0L
         dailyRefreshStarted = false
         reloadOnResume = false
@@ -805,6 +807,16 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun isOnline(): Boolean = NetworkState.isOnline(this)
+
+    private fun qualityLabel(quality: PlayerConstants.PlaybackQuality): String = when (quality) {
+        PlayerConstants.PlaybackQuality.SMALL -> "240p"
+        PlayerConstants.PlaybackQuality.MEDIUM -> "360p"
+        PlayerConstants.PlaybackQuality.LARGE -> "480p"
+        PlayerConstants.PlaybackQuality.HD720 -> "720p"
+        PlayerConstants.PlaybackQuality.HD1080 -> "1080p"
+        PlayerConstants.PlaybackQuality.HIGH_RES -> "1440p"
+        else -> ""
+    }
 
     /** Quick real-world check: a validated network can still have no internet. */
     private fun canReachInternet(): Boolean = try {
