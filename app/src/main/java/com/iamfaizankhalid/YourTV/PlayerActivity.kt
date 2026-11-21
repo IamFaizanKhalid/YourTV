@@ -245,8 +245,8 @@ class PlayerActivity : AppCompatActivity() {
      * only initialized from [onApplied], so the first requests already use it.
      */
     private fun applyBandwidthProxy(onApplied: () -> Unit) {
-        val mbps = BandwidthLimit.get(this)
-        if (mbps <= 0) {
+        val kbps = BandwidthLimit.get(this)
+        if (kbps <= 0) {
             releaseBandwidthProxy(clearOverride = true) { onApplied() }
             return
         }
@@ -258,7 +258,7 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         val proxy = try {
-            throttlingProxy ?: ThrottlingProxy(mbps).also {
+            throttlingProxy ?: ThrottlingProxy(kbps).also {
                 it.start()
                 throttlingProxy = it
             }
@@ -267,7 +267,7 @@ class PlayerActivity : AppCompatActivity() {
             onApplied()
             return
         }
-        proxy.setBandwidthMbps(mbps)
+        proxy.setBandwidthKbps(kbps)
 
         try {
             val config = ProxyConfig.Builder()

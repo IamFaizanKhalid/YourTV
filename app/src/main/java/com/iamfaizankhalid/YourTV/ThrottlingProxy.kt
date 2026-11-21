@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit
  * Tiny loopback HTTP proxy that throttles downloaded bytes. WebView is pointed
  * at it with ProxyController so only the player's traffic is limited.
  */
-class ThrottlingProxy(initialMbps: Int) {
+class ThrottlingProxy(initialKbps: Int) {
     companion object {
         private const val TAG = "YourTVProxy"
         private const val BUFFER_SIZE = 16 * 1024
@@ -24,7 +24,7 @@ class ThrottlingProxy(initialMbps: Int) {
     }
 
     private val serverSocket = ServerSocket(0, 50, InetAddress.getByName("127.0.0.1"))
-    private val limiter = BandwidthLimiter(mbpsToBytesPerSecond(initialMbps))
+    private val limiter = BandwidthLimiter(kbpsToBytesPerSecond(initialKbps))
     private val sockets = ConcurrentHashMap.newKeySet<Socket>()
 
     @Volatile
@@ -39,8 +39,8 @@ class ThrottlingProxy(initialMbps: Int) {
         }
     }
 
-    fun setBandwidthMbps(mbps: Int) {
-        limiter.bytesPerSecond = mbpsToBytesPerSecond(mbps)
+    fun setBandwidthKbps(kbps: Int) {
+        limiter.bytesPerSecond = kbpsToBytesPerSecond(kbps)
     }
 
     fun stop() {
@@ -212,5 +212,5 @@ class ThrottlingProxy(initialMbps: Int) {
     }
 }
 
-private fun mbpsToBytesPerSecond(mbps: Int): Long =
-    if (mbps <= 0) 0L else mbps * 1_000_000L / 8L
+private fun kbpsToBytesPerSecond(kbps: Int): Long =
+    if (kbps <= 0) 0L else kbps * 1_000L / 8L

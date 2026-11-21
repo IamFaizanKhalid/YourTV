@@ -10,14 +10,14 @@ object AppSettings {
     private const val PREFS = "app_settings"
     private const val KEY_AUTO_START = "auto_start"
     private const val KEY_MAX_RESOLUTION = "max_resolution"
-    private const val KEY_BANDWIDTH_LIMIT = "bandwidth_limit_mbps"
+    private const val KEY_BANDWIDTH_LIMIT = "bandwidth_limit_kbps"
 
-    /** Bandwidth limit in Mbps, 0 for unlimited. */
-    fun bandwidthLimitMbps(context: Context): Int =
+    /** Bandwidth limit in kbps, 0 for unlimited. */
+    fun bandwidthLimitKbps(context: Context): Int =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getInt(KEY_BANDWIDTH_LIMIT, 0)
 
-    fun setBandwidthLimitMbps(context: Context, value: Int) {
+    fun setBandwidthLimitKbps(context: Context, value: Int) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .putInt(KEY_BANDWIDTH_LIMIT, value)
