@@ -78,7 +78,6 @@ class PlayerActivity : AppCompatActivity() {
     private var slowBufferWarningShown = false
     private var hasStartedPlayback = false
     private var switchingToLatestStream = false
-    private var lastQualityRank = 0
     private var retryCountdown: Runnable? = null
     private var startupCheck: Runnable? = null
     private var playerInitialized = false
@@ -187,15 +186,7 @@ class PlayerActivity : AppCompatActivity() {
                 youTubePlayer: YouTubePlayer,
                 playbackQuality: PlayerConstants.PlaybackQuality
             ) {
-                val rank = qualityRank(playbackQuality)
                 Log.d(TAG, "Quality: $playbackQuality")
-                if (rank in 1 until lastQualityRank) {
-                    // YouTube dropped the quality because the connection is struggling.
-                    showStatus(getString(R.string.status_slow_internet))
-                    handler.removeCallbacks(hideStatusMessage)
-                    handler.postDelayed(hideStatusMessage, OVERLAY_TIMEOUT_MS)
-                }
-                if (rank > 0) lastQualityRank = rank
             }
         }
 
@@ -465,7 +456,6 @@ class PlayerActivity : AppCompatActivity() {
         slowBufferWarningShown = false
         hasStartedPlayback = false
         switchingToLatestStream = false
-        lastQualityRank = 0
         currentVideoId = null
         cachedFetchedAt = 0L
         dailyRefreshStarted = false
@@ -815,16 +805,6 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun isOnline(): Boolean = NetworkState.isOnline(this)
-
-    private fun qualityRank(quality: PlayerConstants.PlaybackQuality): Int = when (quality) {
-        PlayerConstants.PlaybackQuality.SMALL -> 1
-        PlayerConstants.PlaybackQuality.MEDIUM -> 2
-        PlayerConstants.PlaybackQuality.LARGE -> 3
-        PlayerConstants.PlaybackQuality.HD720 -> 4
-        PlayerConstants.PlaybackQuality.HD1080 -> 5
-        PlayerConstants.PlaybackQuality.HIGH_RES -> 6
-        else -> 0
-    }
 
     /** Quick real-world check: a validated network can still have no internet. */
     private fun canReachInternet(): Boolean = try {
