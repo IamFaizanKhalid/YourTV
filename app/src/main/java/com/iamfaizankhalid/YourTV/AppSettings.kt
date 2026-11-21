@@ -9,6 +9,19 @@ import android.content.Context
 object AppSettings {
     private const val PREFS = "app_settings"
     private const val KEY_AUTO_START = "auto_start"
+    private const val KEY_MAX_RESOLUTION = "max_resolution"
+
+    /** Player resolution, 0 for auto and -1 for the TV's resolution. */
+    fun maxResolution(context: Context): Int =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getInt(KEY_MAX_RESOLUTION, 0)
+
+    fun setMaxResolution(context: Context, value: Int) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putInt(KEY_MAX_RESOLUTION, value)
+            .apply()
+    }
 
     fun isAutoStartEnabled(context: Context): Boolean =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)

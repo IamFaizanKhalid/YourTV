@@ -22,4 +22,7 @@
     <string name="auto_start_permission_allowed">Allowed</string>
     <string name="auto_start_permission_missing">Not allowed</string>
     <string name="allow">Allow</string>
+    <string name="max_resolution_title">App resolution</string>
+    <string name="max_resolution_description">Run app in low resolution. Video resolution is not guaranteed to be lower. Press left or right to change.</string>
+    <string name="max_resolution_auto">Auto</string>
 </resources>

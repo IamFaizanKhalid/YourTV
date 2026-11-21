@@ -26,6 +26,9 @@ class SettingsActivity : AppCompatActivity() {
         binding.autoStartRow.setOnClickListener { toggleAutoStart() }
         binding.autoStartSwitch.isChecked = AppSettings.isAutoStartEnabled(this)
 
+        binding.maxResolutionRow.setOnClickListener { changeMaxResolution(1) }
+        updateMaxResolutionLabel()
+
         binding.permissionButton.setOnClickListener { openOverlaySettings() }
 
         binding.autoStartRow.requestFocus()
@@ -34,6 +37,7 @@ class SettingsActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         binding.autoStartSwitch.isChecked = AppSettings.isAutoStartEnabled(this)
+        updateMaxResolutionLabel()
         updatePermissionRow()
     }
 
@@ -47,11 +51,38 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (event.action == KeyEvent.ACTION_DOWN && event.keyCode == KeyEvent.KEYCODE_BACK) {
-            finish()
-            return true
+        if (event.action == KeyEvent.ACTION_DOWN) {
+            when (event.keyCode) {
+                KeyEvent.KEYCODE_BACK -> {
+                    finish()
+                    return true
+                }
+                KeyEvent.KEYCODE_DPAD_LEFT -> {
+                    if (currentFocus == binding.maxResolutionRow) {
+                        changeMaxResolution(-1)
+                        return true
+                    }
+                }
+                KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                    if (currentFocus == binding.maxResolutionRow) {
+                        changeMaxResolution(1)
+                        return true
+                    }
+                }
+            }
         }
         return super.dispatchKeyEvent(event)
+    }
+
+    private fun changeMaxResolution(delta: Int) {
+        val next = MaxResolution.next(this, MaxResolution.get(this), delta)
+        MaxResolution.set(this, next)
+        updateMaxResolutionLabel()
+    }
+
+    private fun updateMaxResolutionLabel() {
+        binding.maxResolutionValue.text =
+            MaxResolution.label(this, MaxResolution.get(this))
     }
 
     private fun toggleAutoStart() {
