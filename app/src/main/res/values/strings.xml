@@ -26,4 +26,7 @@
     <string name="max_resolution_title">App resolution</string>
     <string name="max_resolution_description">Run app in low resolution. Video resolution is not guaranteed to be lower. Press left or right to change.</string>
     <string name="max_resolution_auto">Auto</string>
+    <string name="bandwidth_limit_title">Bandwidth limit</string>
+    <string name="bandwidth_limit_description">Limit streaming bandwidth. Press left or right to change.</string>
+    <string name="bandwidth_limit_none">None</string>
 </resources>

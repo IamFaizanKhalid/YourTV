@@ -29,6 +29,9 @@ class SettingsActivity : AppCompatActivity() {
         binding.maxResolutionRow.setOnClickListener { changeMaxResolution(1) }
         updateMaxResolutionLabel()
 
+        binding.bandwidthLimitRow.setOnClickListener { changeBandwidthLimit(1) }
+        updateBandwidthLimitLabel()
+
         binding.permissionButton.setOnClickListener { openOverlaySettings() }
 
         binding.autoStartRow.requestFocus()
@@ -38,6 +41,7 @@ class SettingsActivity : AppCompatActivity() {
         super.onResume()
         binding.autoStartSwitch.isChecked = AppSettings.isAutoStartEnabled(this)
         updateMaxResolutionLabel()
+        updateBandwidthLimitLabel()
         updatePermissionRow()
     }
 
@@ -58,15 +62,27 @@ class SettingsActivity : AppCompatActivity() {
                     return true
                 }
                 KeyEvent.KEYCODE_DPAD_LEFT -> {
-                    if (currentFocus == binding.maxResolutionRow) {
-                        changeMaxResolution(-1)
-                        return true
+                    when (currentFocus) {
+                        binding.maxResolutionRow -> {
+                            changeMaxResolution(-1)
+                            return true
+                        }
+                        binding.bandwidthLimitRow -> {
+                            changeBandwidthLimit(-1)
+                            return true
+                        }
                     }
                 }
                 KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                    if (currentFocus == binding.maxResolutionRow) {
-                        changeMaxResolution(1)
-                        return true
+                    when (currentFocus) {
+                        binding.maxResolutionRow -> {
+                            changeMaxResolution(1)
+                            return true
+                        }
+                        binding.bandwidthLimitRow -> {
+                            changeBandwidthLimit(1)
+                            return true
+                        }
                     }
                 }
             }
@@ -83,6 +99,17 @@ class SettingsActivity : AppCompatActivity() {
     private fun updateMaxResolutionLabel() {
         binding.maxResolutionValue.text =
             MaxResolution.label(this, MaxResolution.get(this))
+    }
+
+    private fun changeBandwidthLimit(delta: Int) {
+        val next = BandwidthLimit.next(this, BandwidthLimit.get(this), delta)
+        BandwidthLimit.set(this, next)
+        updateBandwidthLimitLabel()
+    }
+
+    private fun updateBandwidthLimitLabel() {
+        binding.bandwidthLimitValue.text =
+            BandwidthLimit.label(this, BandwidthLimit.get(this))
     }
 
     private fun toggleAutoStart() {

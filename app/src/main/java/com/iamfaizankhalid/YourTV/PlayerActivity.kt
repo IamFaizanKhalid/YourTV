@@ -20,6 +20,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.webkit.ProxyConfig
+import androidx.webkit.ProxyController
+import androidx.webkit.WebViewFeature
 import com.iamfaizankhalid.YourTV.databinding.ActivityPlayerBinding
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.PlayerConstants
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
@@ -89,6 +92,10 @@ class PlayerActivity : AppCompatActivity() {
     private var appliedMaxResolution = MaxResolution.AUTO
     private var viewportWidthPx = 0
     private var viewportHeightPx = 0
+    private var appliedBandwidthLimit = BandwidthLimit.NONE
+    private var throttlingProxy: ThrottlingProxy? = null
+    private var proxyOverrideSet = false
+    private var proxySetupInProgress = false
     private val backSwitch = Runnable {
         backExitArmed = false
         switchToLastChannel()
@@ -123,6 +130,7 @@ class PlayerActivity : AppCompatActivity() {
 
         appliedMaxResolution = MaxResolution.get(this)
         applyMaxResolutionViewport()
+        appliedBandwidthLimit = BandwidthLimit.get(this)
         binding.root.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
             updateViewportScale()
         }
@@ -207,11 +215,11 @@ class PlayerActivity : AppCompatActivity() {
         })
 
         // Always start with "Loading…"; the watchdog reports network problems.
-        initializePlayer()
+        initializePlayerWithBandwidthLimit()
     }
 
     private fun initializePlayer() {
-        if (playerInitialized) return
+        if (playerInitialized || proxySetupInProgress) return
         playerInitialized = true
 
         binding.youtubePlayerView.let { playerView ->
@@ -231,6 +239,82 @@ class PlayerActivity : AppCompatActivity() {
         scheduleColdStartCheck()
     }
 
+    private fun initializePlayerWithBandwidthLimit() {
+        if (playerInitialized || proxySetupInProgress) return
+        proxySetupInProgress = true
+        applyBandwidthProxy {
+            proxySetupInProgress = false
+            initializePlayer()
+        }
+    }
+
+    /**
+     * Routes WebView traffic through the local throttling proxy. The player is
+     * only initialized from [onApplied], so the first requests already use it.
+     */
+    private fun applyBandwidthProxy(onApplied: () -> Unit) {
+        val mbps = BandwidthLimit.get(this)
+        if (mbps <= 0) {
+            releaseBandwidthProxy(clearOverride = true) { onApplied() }
+            return
+        }
+
+        if (!WebViewFeature.isFeatureSupported(WebViewFeature.PROXY_OVERRIDE)) {
+            Log.w(TAG, "WebView proxy override is not supported")
+            onApplied()
+            return
+        }
+
+        val proxy = try {
+            throttlingProxy ?: ThrottlingProxy(mbps).also {
+                it.start()
+                throttlingProxy = it
+            }
+        } catch (error: Exception) {
+            Log.e(TAG, "Unable to start bandwidth proxy", error)
+            onApplied()
+            return
+        }
+        proxy.setBandwidthMbps(mbps)
+
+        try {
+            val config = ProxyConfig.Builder()
+                .addProxyRule("127.0.0.1:${proxy.port}")
+                .addDirect()
+                .build()
+
+            ProxyController.getInstance().setProxyOverride(config, mainExecutor) {
+                proxyOverrideSet = true
+                onApplied()
+            }
+        } catch (error: Exception) {
+            Log.e(TAG, "Unable to apply WebView proxy", error)
+            onApplied()
+        }
+    }
+
+    private fun releaseBandwidthProxy(
+        clearOverride: Boolean,
+        onReleased: (() -> Unit)? = null
+    ) {
+        throttlingProxy?.stop()
+        throttlingProxy = null
+
+        if (clearOverride && proxyOverrideSet) {
+            try {
+                ProxyController.getInstance().clearProxyOverride(mainExecutor) {
+                    proxyOverrideSet = false
+                    onReleased?.invoke()
+                }
+                return
+            } catch (error: Exception) {
+                Log.e(TAG, "Unable to clear WebView proxy", error)
+            }
+        }
+
+        onReleased?.invoke()
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
@@ -244,12 +328,27 @@ class PlayerActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
 
-        // The setting may have been changed in Settings while this activity was
-        // stopped. Rebuild the viewport and reload so YouTube re-evaluates quality.
+        // Settings may have changed while this activity was stopped.
+        var resolutionChanged = false
         val maxResolution = MaxResolution.get(this)
         if (maxResolution != appliedMaxResolution) {
             appliedMaxResolution = maxResolution
             applyMaxResolutionViewport()
+            resolutionChanged = true
+        }
+
+        val bandwidthLimit = BandwidthLimit.get(this)
+        if (bandwidthLimit != appliedBandwidthLimit) {
+            appliedBandwidthLimit = bandwidthLimit
+            applyBandwidthProxy {
+                if (playerInitialized && youTubePlayer != null) {
+                    loadCurrentChannel(recordView = false)
+                }
+            }
+            return
+        }
+
+        if (resolutionChanged) {
             if (playerInitialized && youTubePlayer != null) {
                 loadCurrentChannel(recordView = false)
             }
@@ -296,6 +395,7 @@ class PlayerActivity : AppCompatActivity() {
         cancelSlowBufferCheck()
         cancelRetryCountdown()
         cancelStartupCheck()
+        releaseBandwidthProxy(clearOverride = true)
         super.onDestroy()
     }
 
