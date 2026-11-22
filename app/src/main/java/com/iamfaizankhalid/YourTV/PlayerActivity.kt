@@ -649,7 +649,7 @@ class PlayerActivity : AppCompatActivity() {
                 retryCountdown == null && !slowBufferWarningShown &&
                 !switchingToLatestStream
             ) {
-                showStatus(getString(R.string.status_loading), withBackground = false)
+                showStatus(getString(R.string.status_slow_loading), withBackground = false)
             }
         }
         bufferingStatus = check
