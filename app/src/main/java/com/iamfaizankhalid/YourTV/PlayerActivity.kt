@@ -627,10 +627,10 @@ class PlayerActivity : AppCompatActivity() {
         staleStreamCheck = null
     }
 
-    private fun showStatus(text: String) {
+    private fun showStatus(text: String, withBackground: Boolean = true) {
         handler.removeCallbacks(hideStatusMessage)
         binding.statusText.text = text
-        binding.statusScrim.visibility = View.VISIBLE
+        binding.statusScrim.visibility = if (withBackground) View.VISIBLE else View.GONE
         binding.statusOverlay.visibility = View.VISIBLE
     }
 
@@ -649,7 +649,7 @@ class PlayerActivity : AppCompatActivity() {
                 retryCountdown == null && !slowBufferWarningShown &&
                 !switchingToLatestStream
             ) {
-                showStatus(getString(R.string.status_buffering))
+                showStatus(getString(R.string.status_loading), withBackground = false)
             }
         }
         bufferingStatus = check
