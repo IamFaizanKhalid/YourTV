@@ -8,6 +8,8 @@ import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
 import android.view.KeyEvent
+import android.view.GestureDetector
+import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
@@ -34,6 +36,7 @@ import java.net.Socket
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlin.math.abs
 
 class PlayerActivity : AppCompatActivity() {
     companion object {
@@ -47,6 +50,7 @@ class PlayerActivity : AppCompatActivity() {
         private const val WAITING_RETRY_MS = 10_000L
         private const val EXIT_BACK_DELAY_MS = 1_000L
         private const val BUFFERING_MESSAGE_DELAY_MS = 1_000L
+        private const val SWIPE_MIN_DISTANCE_DP = 72f
     }
 
     private lateinit var binding: ActivityPlayerBinding
@@ -81,6 +85,7 @@ class PlayerActivity : AppCompatActivity() {
     private var bufferingStatus: Runnable? = null
     private var playerInitialized = false
     private lateinit var playerListener: AbstractYouTubePlayerListener
+    private lateinit var gestureDetector: GestureDetector
     private var digitBuffer = ""
     private var channelListOpen = false
     private var previousChannelIndex: Int? = null
@@ -190,10 +195,46 @@ class PlayerActivity : AppCompatActivity() {
             lifecycle.addObserver(playerView)
         }
 
+        // Touch compatibility for touch-screen devices: tap opens the channel
+        // list, and a horizontal swipe changes the channel. The player itself
+        // never receives these touches.
+        val swipeThreshold = SWIPE_MIN_DISTANCE_DP * resources.displayMetrics.density
+        gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onDown(e: MotionEvent): Boolean = true
+
+            override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+                if (!channelListOpen) openChannelList()
+                return true
+            }
+
+            override fun onFling(
+                e1: MotionEvent?,
+                e2: MotionEvent,
+                velocityX: Float,
+                velocityY: Float
+            ): Boolean {
+                if (channelListOpen || e1 == null) return false
+                val dx = e2.x - e1.x
+                val dy = e2.y - e1.y
+                if (abs(dx) > abs(dy) * 1.5f && abs(dx) > swipeThreshold) {
+                    changeChannel(if (dx < 0) 1 else -1)
+                    return true
+                }
+                return false
+            }
+        })
+        binding.playerTouchBlocker.setOnTouchListener { _, event ->
+            gestureDetector.onTouchEvent(event)
+            true
+        }
+
         binding.channelListSettingsButton.setOnClickListener {
             closeChannelList()
             startActivity(Intent(this, SettingsActivity::class.java))
         }
+
+        // Tapping the dimmed area outside the list closes it.
+        binding.channelListScrim.setOnClickListener { closeChannelList() }
 
         binding.channelList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
