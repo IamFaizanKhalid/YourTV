@@ -19,6 +19,7 @@ object Channels {
         Channel("Bloomberg Television", "https://www.youtube.com/@markets", "International"),
         Channel("CNA", "https://www.youtube.com/@channelnewsasia", "International"),
         Channel("WION", "https://www.youtube.com/@WION", "International"),
+        Channel("Iran International", "https://www.youtube.com/@IRANINTL", "International"),
         Channel("NBC News", "https://www.youtube.com/@NBCNews", "International"),
         Channel("ABC News", "https://www.youtube.com/@ABCNews", "International"),
 
