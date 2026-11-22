@@ -49,6 +49,7 @@ class PlayerActivity : AppCompatActivity() {
         private const val COLD_START_TIMEOUT_MS = 10_000L
         private const val WAITING_RETRY_MS = 10_000L
         private const val EXIT_BACK_DELAY_MS = 1_000L
+        private const val BUFFERING_MESSAGE_DELAY_MS = 1_000L
     }
 
     private lateinit var binding: ActivityPlayerBinding
@@ -80,6 +81,7 @@ class PlayerActivity : AppCompatActivity() {
     private var switchingToLatestStream = false
     private var retryCountdown: Runnable? = null
     private var startupCheck: Runnable? = null
+    private var bufferingStatus: Runnable? = null
     private var playerInitialized = false
     private lateinit var playerListener: AbstractYouTubePlayerListener
     private var digitBuffer = ""
@@ -162,13 +164,13 @@ class PlayerActivity : AppCompatActivity() {
                     if (retryCountdown == null && !slowBufferWarningShown &&
                         !switchingToLatestStream
                     ) {
-                        // Do not leave the user without feedback while the video buffers.
-                        showStatus(
-                            getString(
-                                if (hasStartedPlayback) R.string.status_reconnecting
-                                else R.string.status_loading
-                            )
-                        )
+                        if (!hasStartedPlayback) {
+                            showStatus(getString(R.string.status_loading))
+                        } else {
+                            // Brief stalls recover on their own. Only cover the
+                            // video if buffering actually persists.
+                            scheduleBufferingStatus()
+                        }
                     }
                     scheduleSlowBufferMessage()
                 }
@@ -387,6 +389,7 @@ class PlayerActivity : AppCompatActivity() {
         cancelSlowBufferCheck()
         cancelRetryCountdown()
         cancelStartupCheck()
+        cancelBufferingStatus()
         releaseBandwidthProxy(clearOverride = true)
         super.onDestroy()
     }
@@ -612,6 +615,7 @@ class PlayerActivity : AppCompatActivity() {
 
         retryingStream = true
         cancelStaleStreamCheck()
+        showStatus(getString(R.string.status_reconnecting))
         val generation = loadGeneration
 
         lifecycleScope.launch {
@@ -659,8 +663,29 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun hideStatus() {
         handler.removeCallbacks(hideStatusMessage)
+        cancelBufferingStatus()
         binding.statusScrim.visibility = View.GONE
         binding.statusOverlay.visibility = View.GONE
+    }
+
+    private fun scheduleBufferingStatus() {
+        if (bufferingStatus != null) return
+        val check = Runnable {
+            bufferingStatus = null
+            if (playerState == PlayerConstants.PlayerState.BUFFERING &&
+                retryCountdown == null && !slowBufferWarningShown &&
+                !switchingToLatestStream
+            ) {
+                showStatus(getString(R.string.status_buffering))
+            }
+        }
+        bufferingStatus = check
+        handler.postDelayed(check, BUFFERING_MESSAGE_DELAY_MS)
+    }
+
+    private fun cancelBufferingStatus() {
+        bufferingStatus?.let(handler::removeCallbacks)
+        bufferingStatus = null
     }
 
     private fun scheduleSlowBufferMessage() {

@@ -9,6 +9,7 @@
     <string name="stream_unavailable">This channel is not live right now</string>
     <string name="status_loading">Loading…</string>
     <string name="status_reconnecting">Reconnecting…</string>
+    <string name="status_buffering">Buffering…</string>
     <string name="status_switching_to_latest_stream">Switching to the latest stream…</string>
     <string name="status_waiting_for_internet">Waiting for the internet…</string>
     <string name="retry">Retry</string>
