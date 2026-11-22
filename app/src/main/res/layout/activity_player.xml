@@ -26,6 +26,14 @@
         android:textSize="9sp" />
 
     <View
+        android:id="@+id/playerTouchBlocker"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clickable="true"
+        android:focusable="false"
+        android:importantForAccessibility="no" />
+
+    <View
         android:id="@+id/statusScrim"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

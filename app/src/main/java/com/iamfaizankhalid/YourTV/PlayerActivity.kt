@@ -183,6 +183,10 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         binding.youtubePlayerView.let { playerView ->
+            // The player is for watching only; keep touch, focus and text
+            // selection away from the embedded WebView.
+            playerView.descendantFocusability =
+                android.view.ViewGroup.FOCUS_BLOCK_DESCENDANTS
             lifecycle.addObserver(playerView)
         }
 
