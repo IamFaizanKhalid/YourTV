@@ -27,13 +27,21 @@ object Channels {
         Channel("ARY News", "https://www.youtube.com/@ArynewsTvofficial", "Pakistan"),
         Channel("Dunya News", "https://www.youtube.com/@DunyanewsOfficial", "Pakistan"),
         Channel("92 News HD", "https://www.youtube.com/@92newshdtv", "Pakistan"),
-        Channel("Bol News", "https://www.youtube.com/@BOLNewsofficial", "Pakistan"),
-        Channel("Aaj News", "https://www.youtube.com/@aajtvofficial", "Pakistan"),
+        Channel("Capital TV", "https://www.youtube.com/@CapitalTVLive", "Pakistan"),
+        Channel("24 News", "https://www.youtube.com/@24NewsHD", "Pakistan"),
+        Channel("PTV News", "https://www.youtube.com/@PTVNewsOfficial", "Pakistan"),
         Channel("Samaa TV", "https://www.youtube.com/@SAMAATV", "Pakistan"),
         Channel("Dawn News", "https://www.youtube.com/@dawnnewspakistan", "Pakistan"),
         Channel("Express News", "https://www.youtube.com/@ExpressNewspkofficial", "Pakistan"),
+        Channel("Bol News", "https://www.youtube.com/@BOLNewsofficial", "Pakistan"),
+        Channel("Aaj News", "https://www.youtube.com/@aajtvofficial", "Pakistan"),
         Channel("HUM News", "https://www.youtube.com/@humnewspakistan", "Pakistan"),
         Channel("GNN", "https://www.youtube.com/@gnnhdofficial", "Pakistan"),
-        Channel("Suno News HD", "https://www.youtube.com/channel/UCB82Zom1MYh8VV4q7wXkfGA", "Pakistan")
+        Channel("Suno News HD", "https://www.youtube.com/channel/UCB82Zom1MYh8VV4q7wXkfGA", "Pakistan"),
+        Channel("365 News", "https://www.youtube.com/@365NewsOfficial", "Pakistan"),
+        Channel("GTV Network", "https://www.youtube.com/gtvnetworkhd", "Pakistan"),
+        Channel("Public News", "https://www.youtube.com/@PublicNewsPK", "Pakistan"),
+        Channel("Sun News", "https://www.youtube.com/@SunNewsOfficial", "Pakistan"),
+        Channel("Such News", "https://www.youtube.com/@SuchNewsPakistan", "Pakistan")
     )
 }
