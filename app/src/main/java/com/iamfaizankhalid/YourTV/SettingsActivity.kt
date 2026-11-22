@@ -26,9 +26,6 @@ class SettingsActivity : AppCompatActivity() {
         binding.autoStartRow.setOnClickListener { toggleAutoStart() }
         binding.autoStartSwitch.isChecked = AppSettings.isAutoStartEnabled(this)
 
-        binding.maxResolutionRow.setOnClickListener { changeMaxResolution(1) }
-        updateMaxResolutionLabel()
-
         binding.bandwidthLimitRow.setOnClickListener { changeBandwidthLimit(1) }
         updateBandwidthLimitLabel()
 
@@ -40,7 +37,6 @@ class SettingsActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         binding.autoStartSwitch.isChecked = AppSettings.isAutoStartEnabled(this)
-        updateMaxResolutionLabel()
         updateBandwidthLimitLabel()
         updatePermissionRow()
     }
@@ -63,10 +59,6 @@ class SettingsActivity : AppCompatActivity() {
                 }
                 KeyEvent.KEYCODE_DPAD_LEFT -> {
                     when (currentFocus) {
-                        binding.maxResolutionRow -> {
-                            changeMaxResolution(-1)
-                            return true
-                        }
                         binding.bandwidthLimitRow -> {
                             changeBandwidthLimit(-1)
                             return true
@@ -75,10 +67,6 @@ class SettingsActivity : AppCompatActivity() {
                 }
                 KeyEvent.KEYCODE_DPAD_RIGHT -> {
                     when (currentFocus) {
-                        binding.maxResolutionRow -> {
-                            changeMaxResolution(1)
-                            return true
-                        }
                         binding.bandwidthLimitRow -> {
                             changeBandwidthLimit(1)
                             return true
@@ -88,17 +76,6 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
         return super.dispatchKeyEvent(event)
-    }
-
-    private fun changeMaxResolution(delta: Int) {
-        val next = MaxResolution.next(this, MaxResolution.get(this), delta)
-        MaxResolution.set(this, next)
-        updateMaxResolutionLabel()
-    }
-
-    private fun updateMaxResolutionLabel() {
-        binding.maxResolutionValue.text =
-            MaxResolution.label(this, MaxResolution.get(this))
     }
 
     private fun changeBandwidthLimit(delta: Int) {

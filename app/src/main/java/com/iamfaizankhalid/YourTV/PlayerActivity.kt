@@ -7,11 +7,9 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
-import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
 import android.view.WindowManager
-import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -36,7 +34,6 @@ import java.net.Socket
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import kotlin.math.roundToInt
 
 class PlayerActivity : AppCompatActivity() {
     companion object {
@@ -90,9 +87,6 @@ class PlayerActivity : AppCompatActivity() {
     private var channelListFocusIndex = 0
     private var ignoreOkUntil = 0L
     private var backExitArmed = false
-    private var appliedMaxResolution = MaxResolution.AUTO
-    private var viewportWidthPx = 0
-    private var viewportHeightPx = 0
     private var appliedBandwidthLimit = BandwidthLimit.NONE
     private var throttlingProxy: ThrottlingProxy? = null
     private var proxyOverrideSet = false
@@ -129,12 +123,7 @@ class PlayerActivity : AppCompatActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.decorView.post { hideSystemBars() }
 
-        appliedMaxResolution = MaxResolution.get(this)
-        applyMaxResolutionViewport()
         appliedBandwidthLimit = BandwidthLimit.get(this)
-        binding.root.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
-            updateViewportScale()
-        }
 
         playerListener = object : AbstractYouTubePlayerListener() {
             override fun onReady(player: YouTubePlayer) {
@@ -322,15 +311,7 @@ class PlayerActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
 
-        // Settings may have changed while this activity was stopped.
-        var resolutionChanged = false
-        val maxResolution = MaxResolution.get(this)
-        if (maxResolution != appliedMaxResolution) {
-            appliedMaxResolution = maxResolution
-            applyMaxResolutionViewport()
-            resolutionChanged = true
-        }
-
+        // The bandwidth setting may have changed while this activity was stopped.
         val bandwidthLimit = BandwidthLimit.get(this)
         if (bandwidthLimit != appliedBandwidthLimit) {
             appliedBandwidthLimit = bandwidthLimit
@@ -338,13 +319,6 @@ class PlayerActivity : AppCompatActivity() {
                 if (playerInitialized && youTubePlayer != null) {
                     loadCurrentChannel(recordView = false)
                 }
-            }
-            return
-        }
-
-        if (resolutionChanged) {
-            if (playerInitialized && youTubePlayer != null) {
-                loadCurrentChannel(recordView = false)
             }
             return
         }
@@ -402,52 +376,6 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * YouTube sizes its quality from the player viewport. For a fixed player
-     * resolution we lay the player out at that resolution's CSS size and then
-     * scale the view up to fill the TV. Auto and TV use the normal full-screen
-     * player.
-     */
-    private fun applyMaxResolutionViewport() {
-        val target = MaxResolution.viewportSize(this, appliedMaxResolution)
-        val playerView = binding.youtubePlayerView
-
-        if (target == null) {
-            viewportWidthPx = 0
-            viewportHeightPx = 0
-            playerView.scaleX = 1f
-            playerView.scaleY = 1f
-            playerView.layoutParams = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT
-            )
-            return
-        }
-
-        val density = resources.displayMetrics.density
-        viewportWidthPx = (target.first * density).roundToInt()
-        viewportHeightPx = (target.second * density).roundToInt()
-        playerView.layoutParams = FrameLayout.LayoutParams(
-            viewportWidthPx,
-            viewportHeightPx,
-            Gravity.CENTER
-        )
-        playerView.post { updateViewportScale() }
-    }
-
-    private fun updateViewportScale() {
-        if (viewportWidthPx <= 0 || viewportHeightPx <= 0) return
-        val rootWidth = binding.root.width
-        val rootHeight = binding.root.height
-        if (rootWidth <= 0 || rootHeight <= 0) return
-
-        binding.youtubePlayerView.apply {
-            pivotX = viewportWidthPx / 2f
-            pivotY = viewportHeightPx / 2f
-            scaleX = rootWidth.toFloat() / viewportWidthPx
-            scaleY = rootHeight.toFloat() / viewportHeightPx
-        }
-    }
 
     private fun loadCurrentChannel(recordView: Boolean = true) {
         val channel = Channels.all[channelIndex]

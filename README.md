@@ -48,7 +48,6 @@ Open the channel list and choose the **gear** to reach Settings.
 | Setting | What it does |
 | --- | --- |
 | **Open when the TV starts** | Launches YourTV automatically when the TV boots. |
-| **App resolution** | **Auto** by default. Choose a fixed resolution (down to 144p) to run the app at a smaller size — useful for older TVs or limited connections. |
 | **Bandwidth limit** | **None** by default. Choose **250 kbps** up to **10 Mbps** to cap how much data streaming uses. Start low on slow connections and increase if playback stutters. |
 
 Use **Left/Right** on the remote to change a setting, or press **OK** to step through the options.
@@ -59,7 +58,7 @@ Use **Left/Right** on the remote to change a setting, or press **OK** to step th
 - **Channels depend on the broadcaster.** If a channel isn't live at the moment, the app lets you know and moves on.
 - **Built for Android TV 9 and newer.** It also works on other Android TV devices that run the same Android version.
 - **You can make it your TV's home screen.** If your TV won't let you change the default launcher in its menus, this can usually be done with a few `adb` commands.
-- **Stream quality is chosen by YouTube.** The app can lower the app's playback size and limit bandwidth, but YouTube always makes the final call on resolution.
+- **Stream quality is chosen by YouTube.** Your connection speed and YouTube decide the resolution; the app can limit how much bandwidth streaming uses.
 
 ---
 
